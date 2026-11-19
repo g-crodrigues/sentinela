@@ -1,0 +1,3531 @@
+<!DOCTYPE html>
+<html lang="pt-PT" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#0B1618">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sentinela">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" sizes="192x192">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="description" content="Radar de notícias de agricultura e floresta, Portugal e União Europeia.">
+<title>Sentinela — versão técnica</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+<style>
+/* ============================ tokens ============================ */
+:root{
+  --bg:#0B1618; --surface:#122124; --surface2:#192E31; --raise:#20393B;
+  --line:#25403F; --line-soft:#1B2E30;
+  --text:#E9F1EE; --muted:#8CA5A3; --dim:#5F7876;
+  --accent:#E5A93F; --accent-ink:#2A1E06;
+  --hot:#E2603F;
+  --head:"Newsreader", Georgia, "Times New Roman", serif;
+  --ui:"IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --data:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --r:14px; --r-s:9px;
+  --nav-h:66px;
+  --safe-b:env(safe-area-inset-bottom, 0px);
+  --safe-t:env(safe-area-inset-top, 0px);
+}
+html[data-theme="light"]{
+  --bg:#F3F6F2; --surface:#FFFFFF; --surface2:#EAEFE9; --raise:#E1E8E0;
+  --line:#D8E0D8; --line-soft:#E7EDE7;
+  --text:#0D1B1C; --muted:#5B716F; --dim:#8A9C99;
+  --accent:#B47407; --accent-ink:#FFF6E6;
+  --hot:#C24428;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;height:100%}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:var(--ui); font-size:15px; line-height:1.5;
+  overscroll-behavior-y:none;
+  -webkit-font-smoothing:antialiased;
+  -webkit-text-size-adjust:100%;
+  touch-action:manipulation;          /* sem zoom por duplo toque */
+}
+.top, nav, .segmented, .b-axis, .rail{user-select:none;-webkit-user-select:none}
+button,input,select,textarea{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+a{color:inherit;text-decoration:none}
+::selection{background:var(--accent);color:var(--accent-ink)}
+.mono{font-family:var(--data)}
+.eyebrow{
+  font-family:var(--data);font-size:10px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--dim);
+}
+
+/* ============================ topo ============================ */
+.top{
+  position:sticky;top:0;z-index:30;background:var(--bg);
+  padding:calc(var(--safe-t) + 12px) 16px 0;
+}
+.top::after{
+  content:"";position:absolute;left:0;right:0;bottom:-18px;height:18px;
+  background:linear-gradient(var(--bg), transparent);pointer-events:none;
+}
+.bar{display:flex;align-items:center;gap:10px}
+.mark{
+  font-family:var(--head);font-weight:600;font-size:23px;letter-spacing:-.02em;
+  display:flex;align-items:center;gap:8px;
+}
+.mark i{
+  width:7px;height:7px;border-radius:50%;background:var(--accent);
+  display:inline-block;flex:0 0 auto;
+}
+.mark i.live{animation:beat 1.1s ease-in-out infinite}
+@keyframes beat{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.8)}}
+.bar .sp{flex:1}
+.ico{
+  width:38px;height:38px;border-radius:50%;display:grid;place-items:center;
+  border:1px solid var(--line);color:var(--muted);position:relative;
+  transition:background .18s,color .18s,border-color .18s;
+}
+.ico:active{background:var(--surface2)}
+.ico svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.6;
+  stroke-linecap:round;stroke-linejoin:round}
+.ico .ring{
+  position:absolute;left:-1px;top:-1px;width:40px;height:40px;
+  border-radius:50%;pointer-events:none;opacity:0;transition:opacity .2s;
+}
+.ico .ring .track{stroke:color-mix(in srgb, var(--accent) 22%, transparent);stroke-width:2;fill:none}
+.ico.busy .ring{opacity:1}
+.ico.busy>svg:not(.ring){opacity:.3}
+.ico.busy{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 30%,var(--line))}
+.ico .ring .arc{
+  fill:none;stroke:var(--accent);stroke-width:2;stroke-linecap:round;
+  transform:rotate(-90deg);transform-origin:20px 20px;
+  transition:stroke-dashoffset .25s;
+}
+
+/* ====================== boletim de fluxo (assinatura) ====================== */
+.bulletin{margin:14px 0 0;user-select:none;
+  max-height:200px;opacity:1;overflow:hidden;
+  transition:max-height .3s cubic-bezier(.32,.72,0,1), opacity .2s, margin .3s}
+body.compact .bulletin{max-height:0;opacity:0;margin-top:0}
+.b-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;min-height:38px}
+.b-count{font-family:var(--head);font-size:33px;line-height:1;font-weight:500;letter-spacing:-.02em;
+  white-space:nowrap}
+.b-count small{font-family:var(--ui);font-size:12.5px;font-weight:400;color:var(--muted);letter-spacing:0}
+.b-sel{
+  margin-left:auto;font-family:var(--data);font-size:10.5px;color:var(--muted);
+  display:inline-flex;align-items:center;gap:6px;white-space:nowrap;
+  border:1px solid var(--line);border-radius:999px;padding:4px 10px;
+}
+.b-sel.on{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%,transparent)}
+.b-sel button{color:inherit;font-size:13px;line-height:1;padding:0 0 0 2px}
+.chart.void{height:34px;align-items:center;justify-content:center}
+.chart.void span{font-family:var(--data);font-size:10.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--dim)}
+.chart{
+  display:flex;align-items:flex-end;gap:4px;height:80px;
+  margin-top:20px;touch-action:pan-y;position:relative;
+  overflow:hidden;                 /* nada pode transbordar para o cabeçalho */
+}
+.chart::after{
+  content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--line);
+}
+.col{
+  flex:1;display:flex;flex-direction:column;justify-content:flex-end;
+  height:100%;position:relative;min-width:0;
+}
+.col::before{
+  content:"";position:absolute;left:-2px;right:-2px;top:0;bottom:0;
+  border-radius:5px;background:transparent;transition:background .18s;
+}
+.col.weekend::before{background:color-mix(in srgb, var(--muted) 7%, transparent)}
+.col.pick::before{background:color-mix(in srgb, var(--accent) 16%, transparent)}
+.col .stack{
+  position:relative;display:flex;flex-direction:column-reverse;width:100%;
+  transition:opacity .2s, filter .2s;
+}
+.col .seg{width:100%;transition:height .45s cubic-bezier(.2,.7,.3,1)}
+.col .seg + .seg{margin-bottom:1px}
+.col .seg.cap{border-radius:3px 3px 0 0}
+.col .zero{position:relative;height:3px;background:var(--line);border-radius:2px}
+.col.off .stack{opacity:.22;filter:saturate(.35)}
+.col .val{
+  position:absolute;top:0;left:-4px;right:-4px;text-align:center;
+  font-family:var(--data);font-size:9.5px;line-height:1;color:var(--accent);
+}
+.b-axis{display:flex;gap:4px;margin-top:8px}
+.b-axis span{
+  flex:1;text-align:center;min-width:0;
+  font-family:var(--data);font-size:8.5px;color:var(--dim);letter-spacing:-.02em;
+}
+.b-axis span.today{color:var(--accent);position:relative}
+.b-axis span.today::after{
+  content:"";position:absolute;left:50%;transform:translateX(-50%);
+  bottom:-4px;width:3px;height:3px;border-radius:50%;background:var(--accent);
+}
+.b-axis span.mark{color:var(--muted)}
+
+/* ============================ pílulas ============================ */
+.rail{
+  display:flex;gap:7px;overflow-x:auto;padding:11px 16px 1px;margin:0 -16px;
+  scrollbar-width:none;
+}
+.rail::-webkit-scrollbar{display:none}
+.pill{
+  flex:0 0 auto;border:1px solid var(--line);border-radius:999px;
+  padding:8px 13px;font-size:12.5px;color:var(--muted);min-height:36px;
+  display:inline-flex;align-items:center;gap:7px;white-space:nowrap;
+  transition:transform .12s,border-color .18s,color .18s,background .18s;
+}
+.pill:active{transform:scale(.95)}
+.pill .dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+.pill .n{font-family:var(--data);font-size:10.5px;color:var(--dim)}
+.pill.on{background:var(--surface2);color:var(--text);border-color:transparent}
+.pill.on .n{color:var(--muted)}
+.pill.acc.on{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.pill.acc.on .n{color:var(--accent-ink);opacity:.7}
+.rail.trend .pill b{color:var(--text);font-weight:500}
+#filterRail{padding-top:8px}
+#trendRail:empty{display:none}
+#trendRail{padding-top:10px;padding-bottom:2px}
+
+/* ============================ fluxo ============================ */
+main{padding:8px 16px calc(var(--nav-h) + var(--safe-b) + 46px)}
+.ptr{
+  height:0;overflow:hidden;display:grid;place-items:center;
+  transition:height .2s;
+}
+.ptr .gauge{
+  width:26px;height:26px;border-radius:50%;border:2px solid var(--line);
+  border-top-color:var(--accent);
+}
+.ptr.spin .gauge{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.daysep{
+  position:sticky;top:var(--head-h, 150px);z-index:12;
+  display:flex;align-items:center;gap:10px;
+  padding:14px 0 8px;background:linear-gradient(var(--bg) 72%, transparent);
+}
+.daysep b{font-family:var(--data);font-size:10.5px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--muted);font-weight:500}
+.daysep .ln{flex:1;height:1px;background:var(--line-soft)}
+.daysep .n{font-family:var(--data);font-size:10.5px;color:var(--dim)}
+.daysep .dayread{
+  color:var(--dim);font-size:12px;line-height:1;padding:5px 8px;border-radius:8px;
+  border:1px solid var(--line-soft);
+}
+.daysep .dayread:active{background:var(--surface2);color:var(--accent)}
+
+.card{position:relative;margin:0 0 9px;border-radius:var(--r);overflow:hidden;touch-action:pan-y}
+.card .under{
+  opacity:0;position:absolute;inset:0;display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;font-family:var(--data);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+}
+.card .under .l{color:var(--accent)}
+.card .under .r{color:var(--muted)}
+.card .face{
+  position:relative;background:var(--surface);border:1px solid var(--line-soft);
+  border-radius:var(--r);padding:13px 14px 12px 16px;
+  will-change:transform;
+}
+.card .spine{position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:var(--r) 0 0 var(--r)}
+.card.read .face{background:transparent}
+.card.read h3{color:var(--muted);font-weight:400}
+.card.watch .face{border-color:color-mix(in srgb, var(--accent) 45%, transparent)}
+.c-meta{display:flex;align-items:center;gap:8px;margin-bottom:6px;min-width:0}
+.c-meta .t{font-family:var(--data);font-size:10.5px;color:var(--dim)}
+.c-meta .p{font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.c-meta .new{
+  font-family:var(--data);font-size:9px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--accent);border:1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  border-radius:4px;padding:1px 5px;
+}
+.card h3{
+  font-family:var(--head);font-weight:500;font-size:18.5px;line-height:1.26;
+  letter-spacing:-.011em;margin:0;
+}
+.c-foot{display:flex;align-items:center;gap:6px;margin-top:9px;flex-wrap:wrap}
+.tag{
+  font-family:var(--data);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;
+  padding:2px 7px;border-radius:999px;border:1px solid;
+}
+.tag.w{border-color:var(--accent);color:var(--accent);
+  background:color-mix(in srgb, var(--accent) 12%, transparent)}
+.c-foot .star{margin-left:auto;color:var(--dim);font-size:15px;line-height:1}
+.c-foot .star.on{color:var(--accent)}
+.also{font-family:var(--data);font-size:10px;color:var(--dim)}
+.c-meta .mine{
+  font-family:var(--data);font-size:9px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--bg);background:var(--accent);border-radius:4px;padding:1px 5px;
+}
+.c-note{font-size:12.5px;color:var(--muted);margin:6px 0 0;line-height:1.45;
+  border-left:2px solid color-mix(in srgb,var(--accent) 50%,transparent);padding-left:8px}
+.d-note{background:var(--surface2);border-radius:10px;padding:10px 12px;font-size:13.5px;
+  line-height:1.55;margin:0 0 16px;color:var(--text)}
+.arq-head{display:flex;align-items:baseline;gap:8px;margin:4px 0 10px}
+.arq-head b{font-family:var(--head);font-size:20px;font-weight:500}
+.arq-head span{font-size:12.5px;color:var(--muted)}
+
+/* esqueletos */
+.skel{border-radius:var(--r);background:var(--surface);height:96px;margin-bottom:9px;
+  position:relative;overflow:hidden;border:1px solid var(--line-soft)}
+.skel::after{
+  content:"";position:absolute;inset:0;transform:translateX(-100%);
+  background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--raise) 60%,transparent),transparent);
+  animation:sweep 1.3s infinite;
+}
+@keyframes sweep{to{transform:translateX(100%)}}
+
+.empty{text-align:center;padding:56px 24px;color:var(--muted)}
+.empty h4{font-family:var(--head);font-size:21px;font-weight:500;color:var(--text);margin:0 0 6px}
+.empty p{margin:0 0 16px;font-size:13.5px;line-height:1.55}
+.btn{
+  border:1px solid var(--line);border-radius:999px;padding:9px 18px;font-size:13.5px;
+  display:inline-flex;align-items:center;gap:8px;transition:transform .12s;
+}
+.btn:active{transform:scale(.96)}
+.btn.acc{background:var(--accent);color:var(--accent-ink);border-color:transparent;font-weight:500}
+.btn.wide{width:100%;justify-content:center}
+
+/* ============================ navegação ============================ */
+nav{
+  position:fixed;left:0;right:0;bottom:0;z-index:40;
+  height:calc(var(--nav-h) + var(--safe-b));padding-bottom:var(--safe-b);
+  background:color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-top:1px solid var(--line-soft);
+  display:flex;align-items:stretch;
+}
+nav button{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  color:var(--dim);position:relative;padding:10px 2px 8px;min-width:0;
+}
+nav button svg{flex:0 0 auto}
+nav button svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.6;
+  stroke-linecap:round;stroke-linejoin:round}
+nav button span{font-size:10px;letter-spacing:.02em}
+nav button.on{color:var(--text)}
+nav button.on::before{
+  content:"";position:absolute;top:0;width:26px;height:2px;background:var(--accent);border-radius:0 0 2px 2px;
+}
+nav .badge{font-style:normal;
+  position:absolute;top:8px;right:calc(50% - 20px);min-width:16px;height:16px;padding:0 4px;
+  background:var(--accent);color:var(--accent-ink);border-radius:99px;
+  font-family:var(--data);font-size:9.5px;display:grid;place-items:center;
+}
+
+/* ============================ folhas ============================ */
+.scrim{position:fixed;inset:0;z-index:50;background:rgba(4,10,11,.6);
+  opacity:0;pointer-events:none;transition:opacity .22s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{
+  position:fixed;left:0;right:0;bottom:0;z-index:51;
+  background:var(--surface);border-radius:20px 20px 0 0;
+  border-top:1px solid var(--line);
+  max-height:92vh;display:flex;flex-direction:column;
+  transform:translateY(101%);transition:transform .3s cubic-bezier(.32,.72,0,1);
+  padding-bottom:var(--safe-b);
+}
+.sheet.on{transform:none}
+.grab{padding:10px 0 4px;display:grid;place-items:center;flex:0 0 auto;touch-action:none}
+.grab i{width:38px;height:4px;border-radius:99px;background:var(--raise);display:block}
+.sheet header{padding:2px 18px 12px;display:flex;align-items:center;gap:10px;flex:0 0 auto}
+.sheet header h2{font-family:var(--head);font-size:21px;font-weight:600;margin:0;letter-spacing:-.01em}
+.sheet header .sp{flex:1}
+.sheet .body{overflow-y:auto;padding:0 18px 26px;-webkit-overflow-scrolling:touch}
+.segmented{
+  display:flex;gap:3px;background:var(--surface2);border-radius:10px;padding:3px;
+  margin:0 18px 16px;flex:0 0 auto;
+}
+.segmented button{
+  flex:1;padding:8px 4px;border-radius:8px;font-size:12.5px;color:var(--muted);
+  transition:background .18s,color .18s;
+}
+.segmented button.on{background:var(--surface);color:var(--text);font-weight:500;
+  box-shadow:0 1px 3px rgba(0,0,0,.25)}
+
+/* detalhe */
+.d-title{font-family:var(--head);font-size:25px;line-height:1.2;font-weight:500;
+  letter-spacing:-.015em;margin:2px 0 10px}
+.d-dek{font-size:14.5px;line-height:1.6;color:var(--muted);margin:0 0 16px}
+.d-meta{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px}
+.d-acts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.d-acts .btn{justify-content:center}
+.d-also{margin-top:18px;border-top:1px solid var(--line-soft);padding-top:14px}
+.d-also .eyebrow{margin-bottom:7px;display:block}
+.d-also p{margin:0;font-size:13px;color:var(--muted);line-height:1.6}
+
+/* definições */
+.grp{margin:20px 0 9px;display:flex;align-items:baseline;gap:8px}
+.grp .eyebrow{flex:0 0 auto}
+.grp .ln{flex:1;height:1px;background:var(--line-soft)}
+.srow{display:flex;gap:12px;align-items:flex-start;padding:13px 0;border-bottom:1px solid var(--line-soft)}
+.sw{
+  flex:0 0 auto;width:44px;height:26px;border-radius:99px;background:var(--raise);
+  position:relative;transition:background .2s;margin-top:2px;
+}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;
+  background:var(--muted);transition:transform .22s cubic-bezier(.4,1.4,.5,1),background .2s}
+.sw.on{background:color-mix(in srgb, var(--accent) 42%, var(--raise))}
+.sw.on::after{transform:translateX(18px);background:var(--accent)}
+.sw.fixed{opacity:.55}
+.srow .txt{flex:1;min-width:0}
+.srow .txt b{display:block;font-size:14px;font-weight:500}
+.srow .txt small{display:block;font-family:var(--data);font-size:10.5px;color:var(--dim);
+  word-break:break-all;line-height:1.45;margin-top:2px}
+.srow .txt .diag{display:block;font-size:11px;line-height:1.45;margin-top:4px}
+.diag.bad{color:var(--hot)}
+.diag.ok{color:var(--accent)}
+.srow .st{font-family:var(--data);font-size:10.5px;white-space:nowrap;margin-top:4px}
+.st.ok{color:var(--muted)} .st.bad{color:var(--hot)} .st.wait{color:var(--dim)}
+.srow .x{color:var(--dim);padding:4px 2px 4px 8px;font-size:16px;margin-top:0}
+.srowacts{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.pend{
+  display:inline-block;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 40%,transparent);
+  border-radius:4px;padding:1px 5px;margin:3px 0 1px;
+}
+.mini-btn{
+  border:1px solid var(--line);border-radius:999px;padding:5px 11px;
+  font-size:11.5px;color:var(--muted);
+}
+.mini-btn:active{background:var(--surface2);color:var(--accent)}
+.probe{
+  margin-top:8px;border-left:2px solid var(--line);padding-left:10px;
+  font-size:11.5px;line-height:1.6;color:var(--muted);
+}
+.probe b{color:var(--text);font-weight:500}
+.probe .y{color:var(--accent)}
+.probe .n{color:var(--hot)}
+
+.fld{margin-bottom:12px}
+.fld label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:6px}
+.inp{
+  width:100%;background:var(--surface2);border:1px solid transparent;border-radius:10px;
+  padding:11px 12px;outline:none;font-size:14px;transition:border-color .18s;
+}
+.inp:focus{border-color:var(--accent)}
+textarea.inp{min-height:96px;resize:vertical;font-family:var(--data);font-size:12.5px;line-height:1.7}
+select.inp{appearance:none;background-image:none}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.hint{font-size:12px;color:var(--dim);line-height:1.55;margin:6px 0 0}
+.stack{display:flex;flex-direction:column;gap:8px}
+
+/* pesquisa */
+.search{
+  position:fixed;inset:0;z-index:60;background:var(--bg);
+  display:flex;flex-direction:column;
+  opacity:0;pointer-events:none;transform:translateY(8px);
+  transition:opacity .18s,transform .18s;
+  padding-top:var(--safe-t);
+}
+.search.on{opacity:1;pointer-events:auto;transform:none}
+.search .row{display:flex;gap:10px;align-items:center;padding:14px 16px}
+.search input{
+  flex:1;background:var(--surface2);border:0;border-radius:12px;padding:12px 14px;
+  outline:none;font-size:16px;
+}
+.search .body{padding:6px 16px 30px;overflow-y:auto}
+
+/* toast */
+.toast{
+  position:fixed;left:14px;right:14px;bottom:calc(var(--nav-h) + var(--safe-b) + 12px);
+  z-index:70;background:var(--raise);color:var(--text);
+  border:1px solid var(--line);
+  border-radius:13px;padding:12px 14px;display:flex;align-items:center;gap:11px;
+  font-size:13.5px;box-shadow:0 10px 34px rgba(0,0,0,.28);
+  overflow:hidden;visibility:hidden;opacity:0;
+  transform:translateY(16px);
+  transition:transform .26s cubic-bezier(.32,.72,0,1), opacity .2s, visibility .26s;
+}
+.toast.on{transform:none;visibility:visible;opacity:1}
+.toast .msg{flex:1;min-width:0;line-height:1.35}
+.toast .msg small{display:block;font-family:var(--data);font-size:10.5px;color:var(--muted);
+  margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.toast button{color:var(--accent);font-weight:500;font-size:13.5px;flex:0 0 auto}
+.toast .spin{
+  width:17px;height:17px;flex:0 0 auto;border-radius:50%;
+  border:2px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  border-top-color:var(--accent);animation:spin .75s linear infinite;display:none;
+}
+.toast.busy .spin{display:block}
+.toast .prog{
+  position:absolute;left:0;bottom:0;height:2px;width:0;
+  background:var(--accent);transition:width .3s ease;
+}
+
+.note{
+  background:color-mix(in srgb, var(--hot) 12%, var(--surface));
+  border:1px solid color-mix(in srgb, var(--hot) 35%, transparent);
+  border-radius:var(--r-s);padding:12px 13px;font-size:13px;line-height:1.55;margin:10px 0;
+}
+.note b{font-weight:600}
+
+@media (min-width:760px){
+  .top,main{max-width:720px;margin-left:auto;margin-right:auto}
+  nav{max-width:720px;left:50%;transform:translateX(-50%);border-radius:16px 16px 0 0;
+      border:1px solid var(--line-soft);border-bottom:0}
+  .sheet{max-width:640px;left:50%;transform:translate(-50%,101%);border-radius:20px 20px 0 0}
+  .sheet.on{transform:translate(-50%,0)}
+  .card h3{font-size:19.5px}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms !important;transition-duration:.01ms !important}
+}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="bar">
+    <div class="mark"><i id="live"></i>Sentinela</div>
+    <div class="sp"></div>
+    <button class="ico" id="btnSearch" aria-label="Procurar">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    </button>
+    <button class="ico" id="btnTheme" aria-label="Alternar claro e escuro">
+      <svg viewBox="0 0 24 24" id="icoMoon"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>
+      <svg viewBox="0 0 24 24" id="icoSun" style="display:none"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.5 1.5M17.6 17.6l1.5 1.5M19.1 4.9l-1.5 1.5M6.4 17.6l-1.5 1.5"/></svg>
+    </button>
+    <button class="ico" id="btnScan" aria-label="Varrer fontes">
+      <svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 5v6h-6"/></svg>
+      <svg class="ring" viewBox="0 0 40 40" aria-hidden="true">
+        <circle class="track" cx="20" cy="20" r="19"/>
+        <circle class="arc" cx="20" cy="20" r="19" stroke-dasharray="119.4" stroke-dashoffset="119.4"/>
+      </svg>
+    </button>
+  </div>
+
+  <section class="bulletin" id="bulletin">
+    <div class="b-head">
+      <div class="b-count"><span id="bCount">0</span> <small id="bLabel">notícias</small></div>
+      <div class="b-sel" id="bSel"></div>
+    </div>
+    <div class="chart" id="chart"></div>
+    <div class="b-axis" id="axis"></div>
+  </section>
+
+  <div class="rail" id="themeRail"></div>
+  <div class="rail" id="filterRail"></div>
+</header>
+
+<main>
+  <div class="ptr" id="ptr"><div class="gauge"></div></div>
+  <div id="notice"></div>
+  <div class="rail trend" id="trendRail"></div>
+  <div id="feed"></div>
+</main>
+
+<nav>
+  <button data-view="fluxo" class="on">
+    <svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 4 5-8 4 5"/></svg><span>Fluxo</span>
+    <i class="badge" id="badgeUnread" hidden></i>
+  </button>
+  <button data-view="vigias">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/></svg><span>Vigias</span>
+  </button>
+  <button data-view="guardados">
+    <svg viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.6 6 .8-4.4 4.3 1.1 6.1-5.3-3-5.3 3 1.1-6.1L3.4 9.9l6-.8z"/></svg><span>Guardados</span>
+  </button>
+  <button data-view="arquivo">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4.5" rx="1"/><path d="M5 8.5V19a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8.5"/><path d="M10 12.5h4"/></svg><span>Arquivo</span>
+  </button>
+  <button data-view="def">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg><span>Definições</span>
+  </button>
+</nav>
+
+<div class="scrim" id="scrim"></div>
+
+<section class="sheet" id="shDetail" aria-hidden="true">
+  <div class="grab" data-drag><i></i></div>
+  <div class="body" id="detailBody"></div>
+</section>
+
+<section class="sheet" id="shSet" aria-hidden="true">
+  <div class="grab" data-drag><i></i></div>
+  <header><h2>Definições</h2><div class="sp"></div>
+    <button class="btn" id="setClose">Fechar</button></header>
+  <div class="segmented" id="setTabs">
+    <button data-tab="fontes" class="on">Fontes</button>
+    <button data-tab="temas">Filtros</button>
+    <button data-tab="rede">Rede</button>
+    <button data-tab="dados">Dados</button>
+  </div>
+  <div class="body" id="setBody"></div>
+</section>
+
+<section class="search" id="arquivo" aria-label="Arquivo">
+  <div class="row">
+    <input id="aq" type="search" placeholder="Procurar em tudo o que está guardado" autocomplete="off" enterkeyhint="search">
+    <button class="btn" id="aClose">Fechar</button>
+  </div>
+  <div class="rail" id="aMeses" style="padding:0 16px 6px;margin:0"></div>
+  <div class="body" id="aBody"></div>
+</section>
+
+<section class="sheet" id="shAdd" aria-hidden="true">
+  <div class="grab" data-drag><i></i></div>
+  <header><h2>Acrescentar notícia</h2><div class="sp"></div>
+    <button class="btn" id="addClose">Fechar</button></header>
+  <div class="body">
+    <p class="hint" style="margin-bottom:14px" id="addHint">Uma notícia que encontraste noutro lado. Fica nos teus Guardados, para sempre.</p>
+    <div class="fld"><label for="addLink">Ligação</label>
+      <input class="inp" id="addLink" type="url" inputmode="url" placeholder="https://…" autocomplete="off"></div>
+    <div class="fld"><label for="addTitle">Título</label>
+      <input class="inp" id="addTitle" placeholder="Se deixares em branco, tira-se da ligação" autocomplete="off"></div>
+    <div class="two">
+      <div class="fld"><label for="addDate">Data</label><input class="inp" id="addDate" type="date"></div>
+      <div class="fld"><label for="addPub">Publicação</label><input class="inp" id="addPub" placeholder="opcional"></div>
+    </div>
+    <div class="fld"><label for="addNote">Nota</label>
+      <textarea class="inp" id="addNote" style="min-height:70px;font-family:var(--ui);font-size:14px" placeholder="Porque é que te interessa — só tu vês"></textarea></div>
+    <button class="btn acc wide" id="addSave">Guardar notícia</button>
+    <div class="grp"><span class="eyebrow">Ou de uma vez</span><span class="ln"></span></div>
+    <button class="btn wide" id="addImport">Importar de um ficheiro</button>
+    <p class="hint" style="margin-top:8px">Aceita o ficheiro que a Sentinela exporta, uma folha de cálculo guardada em CSV (colunas título, ligação, data, nota) ou texto com uma ligação por linha.</p>
+    <input type="file" id="addFile" accept=".json,.csv,.tsv,.txt,.md,text/plain,text/csv,application/json" hidden>
+  </div>
+</section>
+
+<section class="search" id="search">
+  <div class="row">
+    <input id="q" type="search" placeholder="Procurar nas notícias recolhidas" autocomplete="off" enterkeyhint="search">
+    <button class="btn" id="qClose">Fechar</button>
+  </div>
+  <div class="body" id="qBody"></div>
+</section>
+
+<div class="toast" id="toast">
+  <span class="spin"></span>
+  <span class="msg"><span id="toastMsg"></span><small id="toastSub"></small></span>
+  <button id="toastAct"></button>
+  <i class="prog" id="toastProg"></i>
+</div>
+
+<script>
+"use strict";
+/* =========================================================================
+   Sentinela — radar agroflorestal (PT + UE). Ficheiro único, sem dependências.
+   Motor de recolha e classificação + interface táctil.
+   ========================================================================= */
+
+/* =========================================================================
+   Sentinela — classificador partilhado.
+   O mesmo ficheiro corre no browser (dentro da aplicação) e no servidor
+   (na recolha automática do repositório), para que as duas decidam da
+   mesma maneira o que é notícia do sector.
+   ========================================================================= */
+(function(root, factory){
+  const api = factory();
+  if(typeof module === "object" && module.exports) module.exports = api;
+  else Object.assign(root, api);
+})(typeof globalThis !== "undefined" ? globalThis : this, function(){
+"use strict";
+
+/* ------------------------------ temas -------------------------------- */
+const THEMES = [
+  { id:"politica", label:"Política e PAC",      color:"#2E6B4F",
+    terms:["pac","política agrícola comum","bruxelas","comissão europeia","parlamento europeu","conselho de ministros","ministra da agricultura","ministro da agricultura","ministério da agricultura","regulamento","legislação","quadro financeiro","orçamento","estratégia","plano estratégico","dgadr","gpp","subsídio","apoios","candidaturas","pagamentos","ifap","ecoregime","condicionalidade","reforma","cap reform","common agricultural policy","european commission","regulation","subsidies","mff","multiannual financial framework"] },
+  { id:"floresta", label:"Floresta",            color:"#4C7A38",
+    terms:["floresta","florestal","silvicultura","icnf","eucalipto","pinheiro","pinhal","sobreiro","montado","cortiça","resina","biomassa","madeira","celulose","desbaste","arborização","rearborização","reflorestação","zif","desflorestação","eudr","gestão de combustível","aglomerado","serração","forest","forestry","deforestation","timber","cork oak","logging"] },
+  { id:"fogo", label:"Incêndios",               color:"#B33F2B",
+    terms:["incêndio","incêndios","fogo","fogos","fogo controlado","queimada","agif","proteção civil","bombeiros","área ardida","ignição","risco de incêndio","dfci","faixa de gestão","wildfire","forest fire"] },
+  { id:"agua", label:"Água e regadio",          color:"#2A5A78",
+    terms:["água","hídrico","hídricos","regadio","rega","irrigação","albufeira","barragem","aproveitamento hidroagrícola","edia","alqueva","seca","escassez","dotação","apa","captação","aquífero","reutilização","dessalinização","tejo","guadiana","convenção de albufeira","irrigation","drought","water scarcity"] },
+  { id:"clima", label:"Clima e ambiente",       color:"#6C7F3F",
+    terms:["clima","climática","climáticas","alterações climáticas","emissões","carbono","biodiversidade","solo","desertificação","sustentabilidade","ambiente","natura 2000","restauro da natureza","pesticidas","fitofármacos","nitratos","poluição","climate","emissions","biodiversity","pesticides","soil health","nature restoration"] },
+  { id:"mercados", label:"Mercados e preços",   color:"#9A6B12",
+    terms:["preços","preço","mercado","mercados","exportação","exportações","importação","cotação","cotações","tarifas","mercosul","comércio","margem","inflação","custos de produção","fertilizantes","adubos","gasóleo","volume de negócios","facturação","faturação","colheita","produção","prices","market","trade","tariffs","exports","farm income"] },
+  { id:"producao", label:"Produção e culturas",  color:"#7A5C8E",
+    terms:["vinha","vinho","vinícola","viticultura","olival","azeite","oliveira","amendoal","amêndoa","cereais","trigo","milho","arroz","tomate","hortícolas","fruticultura","pera","maçã","citrinos","pequenos frutos","mirtilo","estufa","agricultura biológica","biológico","regenerativa","colmeia","apicultura","mel","wine","olive oil","cereals","organic farming","harvest"] },
+  { id:"pecuaria", label:"Pecuária e sanidade",  color:"#8E5A3C",
+    terms:["pecuária","bovinos","suínos","ovinos","caprinos","leite","laticínios","carne","matadouro","aves","avícola","dermatose","língua azul","peste suína","gripe aviária","sanidade animal","bem-estar animal","dgav","forragem","pastagem","efeitos zoossanitários","vacinação","livestock","dairy","bluetongue","avian influenza","animal health"] },
+  { id:"inovacao", label:"Inovação e ciência",  color:"#3F7C7C",
+    terms:["investigação","inovação","tecnologia","digital","agricultura de precisão","satélite","sensor","drone","inteligência artificial","projeto","universidade","instituto superior de agronomia","horizonte europa","prr","start-up","startup","piloto","estudo","relatório","research","innovation","precision farming","horizon europe"] },
+  { id:"rural", label:"Mundo rural",            color:"#6E6A58",
+    terms:["mundo rural","desenvolvimento rural","interior","despovoamento","jovens agricultores","agricultor","agricultores","cooperativa","confederação","confederação dos agricultores","confagri","associação de agricultores","protesto","manifestação","tratores","emprego agrícola","sucessão","cadastro","emparcelamento","baldios","rural areas","farmers protest","young farmers"] }
+];
+const THEME_BY_ID = Object.fromEntries(THEMES.map(t=>[t.id,t]));
+
+/* -------------------------- léxico de relevância ----------------------
+   Os termos são procurados como palavras inteiras, com plural opcional:
+   "agroalimentar" apanha "agroalimentares", mas "var" não apanha
+   "variedades" nem "nfl" apanha "inflação".                             */
+const CORE = ["agricultura","agrícola","agricultor","agroalimentar","agroindústria","agropecuária",
+  "agronegócio","agroflorestal","agroflorestais","agronomia","agrónomo","floresta","florestal","florestais",
+  "silvicultura","pac","política agrícola comum","regadio","rega","regante","associação de regantes",
+  "hidroagrícola","pecuária","pecuário","viticultura","viticultor","vinha","olival","olivicultor","amendoal",
+  "montado","cortiça","sobreiro","eucalipto","pinheiro","pinhal","incêndio florestal","incêndios florestais",
+  "área ardida","icnf","ifap","dgadr","dgav","agif","iniav","gpp","pepac","ministério da agricultura",
+  "ministra da agricultura","ministro da agricultura","secretário de estado da agricultura",
+  "secretária de estado da agricultura","confagri","cap","fogo controlado","colheita","campanha agrícola",
+  "seca agrícola","mundo rural","desenvolvimento rural","alqueva","edia","apicultura","apicultor","colmeia",
+  "varroa","aquicultura","pescas","arborização","rearborização","reflorestação","desbaste",
+  "gestão de combustível","zona de intervenção florestal","baldio","emparcelamento","fitossanitário",
+  "fitossanitária","sanidade vegetal","fitofármaco","denominação de origem","indicação geográfica",
+  "vitivinícola","olivicultura","horticultura","hortícola","fruticultura","fruticultor","cinegético",
+  "exploração agrícola","explorações agrícolas","produção agrícola","regime florestal","gripe aviária",
+  "peste suína","língua azul","dermatose nodular","sanidade animal","bem-estar animal","avícola",
+  "suinicultura","bovino","ovino","caprino","suíno","explorações avícolas","pastagem","pastagens","forragem","forragens","silagem",
+  "produtores de leite","produtor agrícola","produtores agrícolas","produtores florestais","ovinicultura",
+  "bovinicultura","adega","lagar","azeite","azeitona","vindima","enologia","viveiro florestal","hortofrutícola",
+  "fileira agroalimentar","cooperativa agrícola","cooperativas agrícolas","exploração pecuária","fertilizante",
+  "adubo","semente","cereal","cereais","trigo","milho","arroz","tomate","amêndoa","mirtilo","pequenos frutos",
+  "frutos secos","instituto superior de agronomia","agriculture","farming","forestry","farmer","agri-food"];
+
+const SECOND = ["rural","solo","água","hídricos","seca","clima","climática","biodiversidade","alimentar",
+  "alimento","exportação","preço","mercado","pesticida","cooperativa","bruxelas","comissão europeia",
+  "união europeia","subsídio","apoio","fundos","prr","biomassa","madeira","celulose","leite","carne","vinho",
+  "fruta","trator","alentejo","ribatejo","douro","beira","trás-os-montes","algarve","açores","madeira","oeste",
+  "lezíria","médio tejo"];
+
+/* Marcas e patrocínios que contêm vocabulário agrícola mas não são notícia do
+   sector. São apagados do texto antes da pontuação.                          */
+const NEUTRAL = ["credito agricola","caixa de credito agricola","caixa agricola","banco agricola",
+  "credito agricola mutuo","cooperativa de credito agricola","seguros credito agricola",
+  "credito agricola seguros","benfica do ribatejo","porto de leixoes"];
+
+/* Publicações de desporto e espectáculo. */
+const PUB_NOISE = ["record","a bola","abola","o jogo","ojogo","maisfutebol","mais futebol",
+  "zerozero","zero zero","jogada","desporto","desportivo","futebol","bancada","tribuna expresso",
+  "sport tv","sportv","eurosport","flashscore","transfermarkt","goal.com","betano","placard",
+  "bola na rede","sapo desporto","tsf desporto","renascenca desporto","liga portugal"];
+
+/* A secção de onde vem o artigo está no seu endereço. */
+const PATH_NOISE = ["/desporto","/desportos","/futebol","/modalidades","/motores",
+  "/automobilismo","/ciclismo","/atletismo","/andebol","/basquetebol","/formula-1",
+  "/celebridades","/famosos","/vidas","/lifestyle","/musica","/televisao","/series",
+  "/cinema","/moda","/horoscopo","/jogos","/gaming","/casino","/apostas"];
+const PATH_GOOD = ["/agricultura","/agro","/floresta","/rural","/ambiente"];
+
+/* Sinais de desporto e espectáculo. Um sozinho não decide nada; dois em
+   simultâneo excluem a notícia. Ficaram de fora palavras que também são
+   correntes no sector ("médio", "estádio" fenológico, "jornadas" técnicas,
+   "titulares" de explorações, "contratação", "plantel", "classificação") e
+   nomes de clubes que são também terras ("Arouca", "Tondela", "Leixões",
+   "Rio Ave", "Santa Clara", "Marítimo").                                     */
+const SPORT = [
+  "sl benfica","sporting cp","sporting clube de portugal","fc porto","futebol clube do porto",
+  "sc braga","sp braga","vitoria sc","vitoria de guimaraes","moreirense","estoril praia","avs futebol",
+  "uniao de leiria","boavista fc","benfica","sporting",
+  "primeira liga","liga portugal","liga betclic","taca de portugal","taca da liga","supertaca",
+  "liga dos campeoes","liga europa","liga conferencia","champions league","mundial de clubes",
+  "seleccao nacional","selecao nacional","euro 2028","mundial 2030",
+  "futebol","futsal","andebol","basquetebol","voleibol","hoquei em patins","rugby","atletismo",
+  "natacao","ciclismo","ciclista","pelotao","camisola amarela","volta a portugal","contra-relogio",
+  "formula 1","motogp","motociclismo","rali de portugal","nba","ufc","boxe","judo","tenis","padel",
+  "golo","penalti","penalty","fora de jogo","livre direto","livre directo","grande penalidade",
+  "guarda-redes","defesa central","ponta de lanca","onze inicial","hat-trick","arbitro","treinador",
+  "seleccionador","selecionador","balneario","claque","derbi","jornada da liga","lesao muscular",
+  "mercado de transferencias","pre-epoca","estadio da luz","estadio do dragao","estadio de alvalade",
+  "estadio municipal","estadio nacional","relvado",
+  "eurovisao","festival da cancao","big brother","casa dos segredos","reality show",
+  "passadeira vermelha","serie da netflix","estreia no cinema","telenovela","horoscopo",
+  "euromilhoes","totobola","totoloto","lotaria"
+];
+
+/* Ruído que pesa por si: cada um tira 5 pontos. Só termos sem ambiguidade. */
+const NOISE = ["sl benfica","sporting cp","fc porto","sc braga","liga betclic","primeira liga",
+  "liga dos campeões","taça de portugal","taça da liga","selecção nacional","seleção nacional",
+  "golo","penálti","hat-trick","onze inicial","guarda-redes","dérbi","mercado de transferências",
+  "camisola amarela","volta a portugal","ciclismo","futebol","futsal","andebol","motogp","fórmula 1",
+  "nba","atletismo","natação","voleibol","motociclismo","treinador","árbitro","balneário","claque",
+  "big brother","reality show","casa dos segredos","telenovela","horóscopo","euromilhões","totoloto",
+  "lotaria","eurovisão","passadeira vermelha","série da netflix","estreia no cinema",
+  "festival de música","criptomoeda","bitcoin"];
+
+/* ========================== âmbitos geográficos ==========================
+   Termos terminados em "*" valem como prefixo; os outros como palavra.     */
+const ZONES = [
+  { id:"pt", short:"PT", label:"Portugal", group:"base", fixed:true, terms:[
+    "portugal","portugues","portuguesa","alentejo","ribatejo","algarve","douro","minho",
+    "beira","tras-os-montes","acores","madeira","lisboa","porto","coimbra","evora","beja",
+    "santarem","setubal","viseu","braganca","castelo branco","vila real","guarda","faro",
+    "governo portugues","assembleia da republica","icnf","ifap","dgadr","dgav","agif",
+    "ministerio da agricultura","confagri","edia","alqueva","apa","ipma"] },
+
+  { id:"eu", short:"UE", label:"Europa e instituições da UE", group:"base", terms:[
+    "uniao europeia","comissao europeia","parlamento europeu","conselho europeu","bruxelas",
+    "politica agricola comum","estados-membros","eurodeputad*","dg agri","eudr",
+    "quadro financeiro","estrasburgo","espanha","espanhol","franca","frances","italia",
+    "italiano","alemanha","alemao","paises baixos","holanda","belgica","polonia","irlanda",
+    "dinamarca","suecia","finlandia","austria","grecia","romenia","bulgaria","hungria",
+    "chequia","eslovaquia","eslovenia","croacia","estonia","letonia","lituania","luxemburgo",
+    "malta","chipre","reino unido","suica","noruega","galiza","andaluzia","extremadura"] },
+
+  { id:"br", short:"BR", label:"Brasil", group:"ag", terms:[
+    "brasil","brasileir*","sao paulo","minas gerais","mato grosso","parana","goias",
+    "rio grande do sul","bahia","embrapa","cerrado"] },
+  { id:"us", short:"EUA", label:"Estados Unidos", group:"ag", terms:[
+    "estados unidos","eua","usda","california","texas","iowa","kansas","nebraska",
+    "midwest","washington","casa branca"] },
+  { id:"cn", short:"CN", label:"China", group:"ag", terms:["china","chines","pequim","xangai"] },
+  { id:"in", short:"IN", label:"Índia", group:"ag", terms:["india","indiano","nova delhi","punjab"] },
+  { id:"ar", short:"AR", label:"Argentina", group:"ag", terms:["argentina","argentino","pampa","rosario"] },
+  { id:"ca", short:"CA", label:"Canadá", group:"ag", terms:["canada","canadiano","saskatchewan","alberta","manitoba"] },
+  { id:"ru", short:"RU", label:"Rússia", group:"ag", terms:["russia","russo","moscovo","kremlin"] },
+  { id:"ua", short:"UA", label:"Ucrânia", group:"ag", terms:["ucrania","ucraniano","kiev","odessa"] },
+  { id:"oc", short:"OC", label:"Austrália e Nova Zelândia", group:"ag", terms:[
+    "australia","australiano","nova zelandia","queensland","tasmania"] },
+  { id:"mx", short:"MX", label:"México", group:"ag", terms:["mexico","mexicano"] },
+  { id:"tr", short:"TR", label:"Turquia", group:"ag", terms:["turquia"] },
+  { id:"za", short:"ZA", label:"África do Sul", group:"ag", terms:[
+    "africa do sul","sul-africano","cidade do cabo","joanesburgo"] },
+  { id:"pl", short:"PALOP", label:"Angola, Moçambique e PALOP", group:"ag", terms:[
+    "angola","angolano","mocambique","mocambicano","cabo verde","guine-bissau","sao tome"] },
+  { id:"mg", short:"MAG", label:"Magrebe e Egito", group:"ag", terms:[
+    "marrocos","marroquino","argelia","tunisia","egito","egipcio"] },
+  { id:"se", short:"ASE", label:"Sudeste asiático", group:"ag", terms:[
+    "indonesia","malasia","vietname","tailandia","filipinas","oleo de palma"] },
+  { id:"la", short:"LAT", label:"Chile, Peru, Uruguai e Paraguai", group:"ag", terms:[
+    "chile","chileno","peruano","peruana","lima peru","uruguai","uruguaio","paraguai"] },
+
+  { id:"other", short:"—", label:"Resto do mundo", group:"other", terms:[
+    "japao","japones","coreia","israel","irao","iraniano","arabia saudita","emirados",
+    "quenia","nigeria","etiopia","gana","senegal","tanzania","uganda","zimbabue",
+    "paquistao","bangladesh","cazaquistao","uzbequistao","colombia","venezuela","equador",
+    "bolivia","cuba","costa rica","guatemala","honduras","panama","republica dominicana",
+    "servia","bosnia","albania","macedonia","montenegro","moldavia","bielorrussia","georgia",
+    "armenia","azerbaijao","nepal","sri lanka","mianmar","cambodja","laos","mongolia"] }
+];
+const ZONE_BY_ID = Object.fromEntries(ZONES.map(z=>[z.id, z]));
+const DEFAULT_ZONES = Object.fromEntries(ZONES.map(z=>[z.id, z.group === "base"]));
+
+/* ---------------------------- fontes padrão --------------------------- */
+/* type:"gnews" → pesquisa no Google Notícias; type:"rss" → feed do sítio.
+   A recolha no servidor lê todas; a aplicação só pede as que estão ligadas. */
+const DEFAULT_SOURCES = [
+  {id:"g-agri", type:"gnews", group:"Pesquisas", name:"Agricultura e agricultores",
+   q:'agricultura OR agrícola OR agricultores OR agroalimentar Portugal'},
+  {id:"g-pol", type:"gnews", group:"Pesquisas", name:"Política agrícola e apoios",
+   q:'"política agrícola comum" OR PAC OR IFAP OR PEPAC OR "Ministério da Agricultura" OR "apoios agrícolas"'},
+  {id:"g-flor", type:"gnews", group:"Pesquisas", name:"Floresta e incêndios",
+   q:'floresta OR florestal OR ICNF OR eucalipto OR sobreiro OR cortiça OR "incêndios florestais" Portugal'},
+  {id:"g-agua", type:"gnews", group:"Pesquisas", name:"Água, regadio e seca",
+   q:'regadio OR rega OR "recursos hídricos" OR seca OR Alqueva agricultura Portugal'},
+  {id:"g-merc", type:"gnews", group:"Pesquisas", name:"Mercados, culturas e pecuária",
+   q:'"preços agrícolas" OR vinha OR olival OR cereais OR hortícolas OR pecuária OR bovinos Portugal'},
+  {id:"g-ue", type:"gnews", group:"Pesquisas", name:"União Europeia — agricultura e floresta",
+   q:'"Comissão Europeia" agricultura OR "política agrícola comum" OR EUDR OR Mercosul agricultura'},
+
+  {id:"g-cult", type:"gnews", group:"Pesquisas", name:"Culturas e fileiras (detalhe)", enabled:false,
+   q:'viticultura OR amendoal OR fruticultura OR "pequenos frutos" OR arroz OR tomate indústria Portugal'},
+  {id:"g-pec", type:"gnews", group:"Pesquisas", name:"Sanidade animal (detalhe)", enabled:false,
+   q:'"sanidade animal" OR "gripe aviária" OR "língua azul" OR "peste suína" Portugal'},
+  {id:"g-rural", type:"gnews", group:"Pesquisas", name:"Mundo rural e organizações", enabled:false,
+   q:'"jovens agricultores" OR CONFAGRI OR "confederação dos agricultores" OR cooperativa agrícola Portugal'},
+  {id:"g-ue3", type:"gnews", group:"Pesquisas", name:"UE — orçamento e comércio", enabled:false,
+   q:'"quadro financeiro plurianual" agricultura OR Mercosul acordo agricultura UE'},
+
+  {id:"publico-rss",    type:"rss", group:"Referência", name:"Público",      url:"https://feeds.feedburner.com/PublicoRSS"},
+  {id:"rtp-rss",        type:"rss", group:"Referência", name:"RTP Notícias", url:"https://www.rtp.pt/noticias/rss"},
+  {id:"observador-rss", type:"rss", group:"Referência", name:"Observador",   url:"https://observador.pt/feed/"},
+  {id:"expresso-rss",   type:"rss", group:"Referência", name:"Expresso",     url:"https://expresso.pt/rss", enabled:false},
+  {id:"eco",            type:"rss", group:"Referência", name:"ECO",          url:"https://eco.sapo.pt/feed/", enabled:false},
+  {id:"g-publico",  type:"gnews", group:"Referência", name:"Público — só agroflorestal", enabled:false,
+   q:'site:publico.pt agricultura OR floresta OR florestal OR regadio OR agricultores'},
+  {id:"g-expresso", type:"gnews", group:"Referência", name:"Expresso — só agroflorestal", enabled:false,
+   q:'site:expresso.pt agricultura OR floresta OR florestal OR regadio OR agricultores'},
+  {id:"g-observador", type:"gnews", group:"Referência", name:"Observador — só agroflorestal", enabled:false,
+   q:'site:observador.pt agricultura OR floresta OR florestal OR regadio OR agricultores'},
+
+  {id:"agroportal", type:"rss", group:"Especializada", name:"Agroportal",        url:"https://www.agroportal.pt/feed/"},
+  {id:"agrimar",    type:"rss", group:"Especializada", name:"Agricultura e Mar", url:"https://agriculturaemar.com/feed"},
+  {id:"vidarural",  type:"rss", group:"Especializada", name:"Vida Rural",        url:"https://www.vidarural.pt/feed/"},
+  {id:"vozdocampo", type:"rss", group:"Especializada", name:"Voz do Campo",      url:"https://vozdocampo.pt/feed/", enabled:false},
+  {id:"flf",        type:"rss", group:"Especializada", name:"Frutas, Legumes e Flores", url:"https://www.frutaslegumeseflores.com/feed/", enabled:false},
+  {id:"ambiente",   type:"gnews", group:"Especializada", name:"Ambiente e território", enabled:false,
+   q:'ambiente OR biodiversidade OR "uso do solo" agricultura OR floresta Portugal'},
+
+  {id:"ec-agri", type:"rss", group:"Oficial", name:"Comissão Europeia — agricultura",
+   url:"https://ec.europa.eu/commission/presscorner/api/rss?language=en&policyarea=18&pagesize=30"},
+  {id:"dre1", type:"rss", group:"Oficial", name:"Diário da República — 1.ª série",
+   url:"https://files.diariodarepublica.pt/rss/serie1-html.xml", enabled:false},
+  {id:"dre2", type:"rss", group:"Oficial", name:"DR — 2.ª série, anúncios de procedimento",
+   url:"https://files.diariodarepublica.pt/rss/serie2&parte=l-html.xml", enabled:false},
+  {id:"g-gov", type:"gnews", group:"Oficial", name:"Governo e institucional", enabled:false,
+   q:'site:portugal.gov.pt agricultura OR florestas OR alimentação'},
+
+  {id:"arc2020",  type:"rss", group:"Europa", name:"ARC2020 (PAC)", url:"https://www.arc2020.eu/feed/"},
+  {id:"euractiv", type:"gnews", group:"Europa", name:"Euractiv — Agrifood", enabled:false,
+   q:'site:euractiv.com agriculture OR farming OR forestry OR CAP'},
+  {id:"efsa",     type:"rss", group:"Europa", name:"EFSA", url:"https://www.efsa.europa.eu/en/all/rss", enabled:false}
+];
+
+/* Abaixo disto uma notícia nem fica guardada. O limiar de cada pessoa
+   aplica-se depois, ao mostrar, por isso mudá-lo não apaga nada.           */
+const KEEP_MIN = 1;
+
+/* ------------------------------ utilidades ---------------------------- */
+const deacc = s => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
+function hostOf(u){ try{ return new URL(u).hostname.replace(/^www\./, ""); }catch{ return ""; } }
+
+const ENT = { amp:"&", lt:"<", gt:">", quot:'"', apos:"'", nbsp:" ", laquo:"«", raquo:"»",
+  ldquo:"“", rdquo:"”", lsquo:"‘", rsquo:"’", hellip:"…", ndash:"–", mdash:"—", euro:"€",
+  ordm:"º", ordf:"ª", deg:"°", middot:"·",
+  aacute:"á", agrave:"à", acirc:"â", atilde:"ã", eacute:"é", ecirc:"ê", iacute:"í", oacute:"ó",
+  ocirc:"ô", otilde:"õ", uacute:"ú", ccedil:"ç", Aacute:"Á", Agrave:"À", Acirc:"Â", Atilde:"Ã",
+  Eacute:"É", Ecirc:"Ê", Iacute:"Í", Oacute:"Ó", Ocirc:"Ô", Otilde:"Õ", Uacute:"Ú", Ccedil:"Ç",
+  uuml:"ü", ntilde:"ñ" };
+function decodeEntities(s){
+  return String(s ?? "")
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(+d))
+    .replace(/&([a-z]+);/gi, (m, n) => ENT[n] ?? m);
+}
+/* Texto sem marcação. As entidades são decodificadas duas vezes porque há
+   feeds que codificam o HTML e depois o codificam de novo.                   */
+function stripTags(s){
+  let t = String(s ?? "").replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1");
+  t = decodeEntities(t).replace(/<[^>]*>/g, " ");
+  t = decodeEntities(t).replace(/<[^>]*>/g, " ");
+  return t.replace(/\s+/g, " ").trim();
+}
+
+function normTitle(t){
+  return deacc(t).replace(/\s+[-–—]\s+[^-–—]{2,40}$/, "")
+                 .replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim().slice(0, 90);
+}
+
+const rxCache = new Map();
+function wordRx(term){
+  if(rxCache.has(term)) return rxCache.get(term);
+  let raw = deacc(term).trim(), prefix = false;
+  if(raw.endsWith("*")){ prefix = true; raw = raw.slice(0, -1); }
+  const body = raw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
+  // plural regular: vogal + s (milho → milhos, não milhões); r/z + es (agricultor → agricultores)
+  const plural = /[aeiou]$/.test(raw) ? "(?:s)?" : /[rz]$/.test(raw) ? "(?:es)?" : "";
+  const tail = prefix ? "" : plural + "([^a-z0-9]|$)";
+  const r = new RegExp("(^|[^a-z0-9])" + body + tail);
+  rxCache.set(term, r);
+  return r;
+}
+
+/* Texto de um feed a partir dos bytes. fetch().text() assume sempre UTF-8,
+   e há feeds portugueses em ISO-8859-1: sem isto, os acentos saem trocados. */
+function decodeBytes(buf, contentType){
+  const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+  let cs = (/charset=([\w-]+)/i.exec(contentType || "") || [])[1];
+  if(!cs){
+    const head = new TextDecoder("latin1").decode(bytes.slice(0, 300));
+    cs = (/encoding=["']([\w-]+)["']/i.exec(head) || [])[1];
+  }
+  cs = (cs || "utf-8").toLowerCase();
+  if(cs === "iso-8859-1" || cs === "latin1") cs = "windows-1252";
+  try{ return new TextDecoder(cs).decode(bytes); }
+  catch{ return new TextDecoder("utf-8").decode(bytes); }
+}
+
+function gnewsUrl(q, days){
+  return "https://news.google.com/rss/search?q=" + encodeURIComponent(`${q} when:${days}d`) +
+         "&hl=pt-PT&gl=PT&ceid=PT:pt-150";
+}
+
+/* Converte uma entrada lida de um feed — no browser ou no servidor — numa
+   notícia com a mesma forma nos dois lados.                                  */
+function cleanEntry(raw, src){
+  let title = stripTags(raw.title);
+  if(!title) return null;
+  const link = String(raw.link || "").trim();
+  let ts = Date.parse(raw.date || "");
+  if(!ts || isNaN(ts)) ts = Date.now();
+  if(ts > Date.now() + 864e5) ts = Date.now();          // datas no futuro são erro do feed
+  let dek = stripTags(raw.description);
+  let publisher = stripTags(raw.sourceName);
+  if(src.type === "gnews"){
+    const m = title.match(/^(.*)\s[-–]\s([^-–]{2,45})$/);
+    if(m){ title = m[1].trim(); if(!publisher) publisher = m[2].trim(); }
+    if(dek.length < 25 || dek.startsWith(title.slice(0, 20))) dek = "";
+  }
+  if(!publisher) publisher = hostOf(link) || stripTags(raw.feedTitle) || src.name;
+  if(dek.length > 320) dek = dek.slice(0, 317).replace(/\s+\S*$/, "") + "…";
+  return { title, link, ts, dek, publisher, cats: String(raw.cats || "").slice(0, 160),
+           srcId: src.id, srcName: src.name };
+}
+
+/* ------------------------------ classificação -------------------------- */
+function buildLexicon(opts = {}){
+  const extraCore  = (opts.extraCore  || []).filter(Boolean);
+  const extraNoise = (opts.extraNoise || []).filter(Boolean);
+  return {
+    core:  CORE.concat(extraCore).map(t => ({t, r:wordRx(t)})),
+    sec:   SECOND.map(t => ({t, r:wordRx(t)})),
+    noise: NOISE.concat(extraNoise).map(t => ({t, r:wordRx(t)})),
+    sport: SPORT.map(t => wordRx(t)),
+    themes: THEMES.map(th => ({id:th.id, rx: th.terms.map(wordRx)})),
+    zones: ZONES.map(z => ({id:z.id, rx: z.terms.map(wordRx)})),
+    srcMap: opts.sourceGroups ||
+            Object.fromEntries(DEFAULT_SOURCES.map(s => [s.id, s.group]))
+  };
+}
+
+function analyseWith(LEX, it){
+  let hay = " " + deacc(`${it.title} ${it.dek || ""} ${it.publisher || ""} ${it.cats || ""}`) + " ";
+  for(const nb of NEUTRAL) if(hay.includes(nb)) hay = hay.split(nb).join(" ");
+  const g = LEX.srcMap[it.srcId] || (it.own ? "Minhas" : "");
+  let score = 0;
+  const hits = [];
+
+  for(const {t, r} of LEX.core)  if(r.test(hay)){ score += 3; hits.push(t); }
+  for(const {r} of LEX.sec)      if(r.test(hay))  score += 1;
+  for(const {r} of LEX.noise)    if(r.test(hay))  score -= 5;
+
+  if(g === "Especializada") score += 4;
+  else if(g === "Europa")   score += 3;
+
+  const pub = deacc(it.publisher);
+  const pubMau = PUB_NOISE.some(x => pub.includes(deacc(x)));
+  if(pubMau) score -= 8;
+
+  let sinais = 0;
+  for(const r of LEX.sport){ if(r.test(hay) && ++sinais >= 2) break; }
+  if(sinais >= 2 || (sinais >= 1 && pubMau)) score = -99;
+
+  if(!hits.length && g !== "Especializada" && g !== "Oficial" && g !== "Minhas") score -= 3;
+
+  const path = deacc(it.link || "");
+  if(score > -99){
+    if(PATH_NOISE.some(x => path.includes(x))) score -= 12;
+    else if(PATH_GOOD.some(x => path.includes(x))) score += 3;
+    if(/desporto|futebol|modalidades|celebridades|entretenimento|televisao/.test(deacc(it.cats || "")))
+      score -= 10;
+  }
+  if(it.own) score = Math.max(score, 50);                // as tuas notícias passam sempre
+
+  const themes = [];
+  for(const th of LEX.themes){
+    let c = 0;
+    for(const r of th.rx) if(r.test(hay)) c++;
+    if(c) themes.push({id:th.id, c});
+  }
+  themes.sort((a,b) => b.c - a.c);
+
+  const zones = [];
+  for(const z of LEX.zones) if(z.rx.some(r => r.test(hay))) zones.push(z.id);
+  if(!zones.length) zones.push("pt");                    // imprensa portuguesa sem marcador: é nacional
+
+  const pt = zones.includes("pt"), ue = zones.includes("eu");
+  const geo = pt && ue ? "UE·PT" : pt ? "PT" : ue ? "UE" : (ZONE_BY_ID[zones[0]]?.short || "—");
+
+  return { score, themes: themes.slice(0,3).map(t => t.id), geo, zones, hits: [...new Set(hits)].slice(0,4) };
+}
+
+return { THEMES, THEME_BY_ID, CORE, SECOND, NEUTRAL, PUB_NOISE, PATH_NOISE, PATH_GOOD, SPORT, NOISE,
+         ZONES, ZONE_BY_ID, DEFAULT_ZONES, DEFAULT_SOURCES, KEEP_MIN,
+         deacc, hostOf, decodeEntities, stripTags, normTitle, wordRx, gnewsUrl, cleanEntry, decodeBytes,
+         buildLexicon, analyseWith };
+});
+
+
+/* ------------------------------ storage ------------------------------ */
+const Store = (() => {
+  let ok = true, mem = {};
+  try { localStorage.setItem("__t","1"); localStorage.removeItem("__t"); }
+  catch { ok = false; }
+  return {
+    available: ok,
+    get(k, d){ try{ const v = ok ? localStorage.getItem(k) : mem[k];
+      return v==null ? d : JSON.parse(v); }catch{ return d; } },
+    set(k, v){ const s = JSON.stringify(v);
+      try{ if(ok) localStorage.setItem(k,s); else mem[k]=s; }catch{ mem[k]=s; } },
+    del(k){ try{ if(ok) localStorage.removeItem(k); }catch{} delete mem[k]; }
+  };
+})();
+
+/* --------------------------- proxies de CORS -------------------------- */
+/* {URL} é substituído pelo endereço codificado; {RAWURL} pelo endereço tal e qual,
+   que é o formato exigido por alguns serviços.                                  */
+const DEFAULT_PROXIES = [
+  "https://api.allorigins.win/raw?url={URL}",
+  "https://api.codetabs.com/v1/proxy?quest={URL}",
+  "https://api.allorigins.win/get?url={URL}",
+  "https://feed2json.org/convert?url={URL}",
+  "{URL}"
+];
+
+/* Limites conhecidos de cada serviço. Exceder o ritmo devolve 429 e,
+   pior, faz o serviço deixar de responder durante algum tempo.        */
+const HOST_LIMITS = {
+  "api.allorigins.win": { rpm:18, conc:2 },
+  "api.codetabs.com":   { rpm:45, conc:3 },
+  "feed2json.org":      { rpm:30, conc:2 },
+  "directo":            { rpm:99, conc:4 }
+};
+
+/* ------------------------------- estado ------------------------------- */
+const REPO_ORIGEM = "";      // preenchido ao gerar a versão para publicar, se indicado
+const CONFIG_VERSION = 8;
+
+/* Junta fontes e repetidores novos a uma configuração já guardada,
+   preservando o que o utilizador ligou, desligou ou acrescentou. */
+function resetZones(){ S.zones = { ...DEFAULT_ZONES }; }
+
+function migrateSources(saved){
+  const base = DEFAULT_SOURCES.map(s=>({enabled:s.enabled!==false, ...s}));
+  if(!saved || !saved.length) return base;
+  // As fontes acrescentadas por ti são preservadas; as de origem voltam ao
+  // conjunto recomendado, que foi reduzido para caber nos limites de ritmo
+  // dos repetidores públicos.
+  const ids = new Set(DEFAULT_SOURCES.map(d => d.id));
+  return base.concat(saved.filter(s => !ids.has(s.id)));
+}
+
+
+const S = {
+  sources: (Store.get("sen.cfgVersion", 0) < CONFIG_VERSION)
+            ? migrateSources(Store.get("sen.sources", null))
+            : Store.get("sen.sources", null) || DEFAULT_SOURCES.map(s=>({enabled:s.enabled!==false, ...s})),
+  proxies: (Store.get("sen.cfgVersion", 0) < CONFIG_VERSION) ? DEFAULT_PROXIES : Store.get("sen.proxies", DEFAULT_PROXIES),
+  extraCore: Store.get("sen.core", []),
+  extraNoise: Store.get("sen.noise", []),
+  watch: Store.get("sen.watch", []),
+  zones: { ...DEFAULT_ZONES, ...(Store.get("sen.zones", null) || {}) },
+  minScore: Store.get("sen.minScore", 3),
+  gnewsDays: Store.get("sen.gnewsDays", 14),
+  autoMin: Store.get("sen.autoMin", 0),
+  cacheMin: Store.get("sen.cacheMin", 15),
+  advanced: Store.get("sen.advanced", false),
+  repo: Store.get("sen.repo", ""),                // escolhido à mão, só na versão técnica
+  arqSync: Store.get("sen.arqSync", 0),           // última vez que o arquivo foi lido
+  token: Store.get("sen.token", ""),              // chave de acesso para enviar notícias (opcional)
+  sent: new Set(Store.get("sen.sent", [])),       // notícias já enviadas para o repositório
+  keepDays: Store.get("sen.keepDays", 0),         // 0 = guardar para sempre
+  archiveSeen: Store.get("sen.archiveSeen", false),
+  read: new Set(Store.get("sen.read", [])),
+  star: Store.get("sen.star", {}),
+  items: (Store.get("sen.items", []) || []).filter(x => x && x.key),
+  offThemes: new Set(),
+  filters: { q:"", period:7, geo:"", unread:false, star:false, watch:false, sort:"data" },
+  status: {},
+  scanning:false, lastScan: Store.get("sen.lastScan", 0),
+  tab:"sources"
+};
+if(!S.sources.length) S.sources = DEFAULT_SOURCES.map(s=>({enabled:s.enabled!==false, ...s}));
+
+/* ----------------------------- guardar no aparelho ----------------------
+   As notícias ficam na base de dados do browser (IndexedDB), sem prazo.
+   Em memória estão só as dos últimos 60 dias, os favoritos e as tuas; as
+   mais antigas lêem-se do aparelho quando abres o Arquivo.
+   Sem IndexedDB, recorre-se ao armazenamento simples, com um limite — mas
+   os favoritos e as tuas notícias nunca são cortados.                     */
+const MEM_DAYS = 60;
+const dirty = new Set();
+const idbReq = r => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+const DB = {
+  ok: false, db: null,
+  open(){
+    return new Promise(res => {
+      try{
+        if(typeof indexedDB === "undefined") return res(false);
+        const rq = indexedDB.open("sentinela", 1);
+        rq.onupgradeneeded = () => {
+          const st = rq.result.createObjectStore("noticias", { keyPath: "key" });
+          st.createIndex("ts", "ts"); st.createIndex("mine", "mine");
+        };
+        rq.onsuccess = () => { DB.db = rq.result; DB.ok = true; res(true); };
+        rq.onerror = rq.onblocked = () => res(false);
+      }catch{ res(false); }
+    });
+  },
+  store(mode = "readonly"){ return DB.db.transaction("noticias", mode).objectStore("noticias"); },
+  limpo(it){
+    const { _w, fresh, ...x } = it;
+    x.mine = (it.own || S.star[it.key]) ? 1 : 0;
+    return x;
+  },
+  async put(items){
+    if(!DB.ok || !items.length) return;
+    const t = DB.db.transaction("noticias", "readwrite"), st = t.objectStore("noticias");
+    for(const it of items) st.put(DB.limpo(it));
+    await new Promise((res, rej) => { t.oncomplete = res; t.onerror = () => rej(t.error); });
+  },
+  since(ts){ return idbReq(DB.store().index("ts").getAll(IDBKeyRange.lowerBound(ts))); },
+  range(a, b){ return idbReq(DB.store().index("ts").getAll(IDBKeyRange.bound(a, b, false, true))); },
+  mine(){ return idbReq(DB.store().index("mine").getAll(1)); },
+  all(){ return idbReq(DB.store().getAll()); },
+  count(){ return idbReq(DB.store().count()); },
+  async get(keys){
+    const st = DB.store();
+    return (await Promise.all(keys.map(k => idbReq(st.get(k))))).filter(Boolean);
+  },
+  /* contagem por mês, sem trazer as notícias para a memória */
+  months(){
+    return new Promise((res, rej) => {
+      const out = {}, rq = DB.store().index("ts").openKeyCursor();
+      rq.onsuccess = () => {
+        const c = rq.result;
+        if(!c) return res(out);
+        const m = new Date(c.key).toISOString().slice(0, 7);
+        out[m] = (out[m] || 0) + 1; c.continue();
+      };
+      rq.onerror = () => rej(rq.error);
+    });
+  },
+  /* só se tiveres escolhido um prazo; favoritos e as tuas ficam sempre */
+  prune(cut){
+    return new Promise(res => {
+      const t = DB.db.transaction("noticias", "readwrite");
+      const rq = t.objectStore("noticias").index("ts").openCursor(IDBKeyRange.upperBound(cut, true));
+      let n = 0;
+      rq.onsuccess = () => {
+        const c = rq.result; if(!c) return;
+        if(!c.value.mine && !S.star[c.value.key]){ c.delete(); n++; }
+        c.continue();
+      };
+      t.oncomplete = () => res(n); t.onerror = () => res(n);
+    });
+  }
+};
+
+function trimMemory(){
+  const cut = Date.now() - MEM_DAYS * 864e5;
+  if(DB.ok) S.items = S.items.filter(i => i.ts >= cut || i.own || S.star[i.key] || i._keep);
+}
+
+async function persistItems(){
+  if(DB.ok){
+    const keys = [...dirty]; dirty.clear();
+    const byKey = new Map(S.items.map(i => [i.key, i]));
+    await DB.put(keys.map(k => byKey.get(k)).filter(Boolean)).catch(() => {});
+    trimMemory();
+    return;
+  }
+  const cut = Date.now() - 21 * 864e5;
+  const fica = S.items.filter(i => i.own || S.star[i.key]);
+  const resto = S.items.filter(i => !(i.own || S.star[i.key]) && i.ts > cut).slice(0, 900);
+  Store.set("sen.items", fica.concat(resto).map(({_w, ...x}) => x));
+}
+
+const persist = () => {
+  Store.set("sen.sources", S.sources);
+  Store.set("sen.proxies", S.proxies);
+  Store.set("sen.core", S.extraCore);
+  Store.set("sen.noise", S.extraNoise);
+  Store.set("sen.watch", S.watch);
+  Store.set("sen.zones", S.zones);
+  Store.set("sen.advanced", S.advanced);
+  Store.set("sen.repo", S.repo);
+  Store.set("sen.arqSync", S.arqSync);
+  Store.set("sen.token", S.token);
+  Store.set("sen.sent", [...S.sent].slice(-20000));
+  Store.set("sen.keepDays", S.keepDays);
+  Store.set("sen.archiveSeen", S.archiveSeen);
+  Store.set("sen.minScore", S.minScore);
+  Store.set("sen.gnewsDays", S.gnewsDays);
+  Store.set("sen.autoMin", S.autoMin);
+  Store.set("sen.cacheMin", S.cacheMin);
+  Store.set("sen.star", S.star);
+  Store.set("sen.read", [...S.read].slice(-6000));
+  Store.set("sen.lastScan", S.lastScan);
+  Store.set("sen.cfgVersion", CONFIG_VERSION);
+};
+
+/* ------------------------------ utilidades ---------------------------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s??"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function stripHtml(html){
+  const d = document.createElement("div");
+  d.innerHTML = String(html??"");
+  return (d.textContent||"").replace(/\s+/g," ").trim();
+}
+function fmtTime(d){ return d.toLocaleTimeString("pt-PT",{hour:"2-digit",minute:"2-digit"}); }
+function fmtDay(d){
+  const t = new Date(); t.setHours(0,0,0,0);
+  const x = new Date(d); x.setHours(0,0,0,0);
+  const diff = Math.round((t-x)/864e5);
+  if(diff===0) return "Hoje";
+  if(diff===1) return "Ontem";
+  return x.toLocaleDateString("pt-PT",{weekday:"long",day:"numeric",month:"long"});
+}
+function ago(ms){
+  const m = Math.round((Date.now()-ms)/6e4);
+  if(m<1) return "agora"; if(m<60) return m+" min";
+  const h = Math.round(m/60); if(h<24) return h+" h";
+  return Math.round(h/24)+" d";
+}
+
+/* --------------------------- obtenção de feeds ------------------------ */
+const proxyScore = [];
+const proxyFails = [];        // falhas de rede consecutivas por repetidor
+const proxyRecusas = [];      // respostas 400/403 seguidas — serviço que exige registo
+const proxyOK    = [];        // já funcionou alguma vez nesta sessão
+const proxyDead  = new Map(); // repetidor → até quando fica posto de parte
+const hostHits   = new Map(); // marcas temporais dos pedidos, por servidor
+
+function hostLimit(h){ return HOST_LIMITS[h] || { rpm:30, conc:3 }; }
+function recentHits(h){
+  const t = Date.now() - 60000;
+  const arr = (hostHits.get(h) || []).filter(x => x > t);
+  hostHits.set(h, arr);
+  return arr;
+}
+function rateFree(h){ return recentHits(h).length < hostLimit(h).rpm; }
+function markHit(h){ recentHits(h).push(Date.now()); }
+/* quanto falta para abrir uma vaga neste servidor */
+function waitFor(h){
+  const arr = recentHits(h);
+  if(arr.length < hostLimit(h).rpm) return 0;
+  return Math.max(0, 60000 - (Date.now() - arr[0])) + 150;
+}
+
+/* Um repetidor pode servir vários endereços (o allorigins serve dois).
+   O limite de pedidos simultâneos tem de ser por servidor, não por linha. */
+function proxyHost(tpl){ return tpl === "{URL}" ? "directo" : hostOf(tpl.replace("{RAWURL}","").replace("{URL}","")); }
+const hostBusy = new Map();
+async function holdHost(h){
+  const max = hostLimit(h).conc;
+  let waited = 0;
+  while((hostBusy.get(h) || 0) >= max && waited < 20000){ await sleep(70); waited += 70; }
+  hostBusy.set(h, (hostBusy.get(h) || 0) + 1);
+}
+function freeHost(h){ hostBusy.set(h, Math.max(0, (hostBusy.get(h) || 1) - 1)); }
+function resetProxies(){ proxyDead.clear(); proxyFails.length = 0; proxyRecusas.length = 0; proxyScore.length = 0;
+  proxyOK.length = 0; hostHits.clear(); }
+
+function buildUrl(src){
+  return src.type === "gnews" ? gnewsUrl(src.q, S.gnewsDays) : src.url;
+}
+
+const sleep = ms => new Promise(r=>setTimeout(r, ms));
+
+/* Endereços alternativos a experimentar quando um feed devolve erro. */
+function urlVariants(u){
+  try{
+    const a = new URL(u), b = a.origin;
+    const list = [b+"/feed/", b+"/feed", b+"/rss", b+"/rss.xml", b+"/index.xml",
+                  b+"/?feed=rss2", b+"/atom.xml", b+"/feed/rss/"];
+    return [...new Set(list)].filter(x => x !== u).slice(0, 6);
+  }catch{ return []; }
+}
+
+function unwrap(text){
+  const t = text.trimStart();
+  if(t.startsWith("{")){
+    try{
+      const j = JSON.parse(t);
+      return j.contents ?? j.data ?? j.body ?? j.response ?? text;
+    }catch{ /* não é JSON válido — segue como está */ }
+  }
+  return text;
+}
+
+async function fetchThrough(url, timeout=18000, maxProxies=99, offset=0){
+  const agora = Date.now();
+  for(const [i, ate] of proxyDead) if(ate < agora) proxyDead.delete(i);
+  let idx = S.proxies.map((_,i)=>i).filter(i => !proxyDead.has(i));
+  if(!idx.length) idx = S.proxies.map((_,i)=>i);      // todos excluídos: tenta na mesma
+  idx.sort((a,b)=> (proxyScore[b]||0) - (proxyScore[a]||0) || a-b);
+  if(offset) idx = idx.slice(offset % idx.length).concat(idx.slice(0, offset % idx.length));
+  idx = idx.slice(0, maxProxies);
+
+  const errs = [];
+  const seen = new Set();
+  const note = m => { if(!seen.has(m)){ seen.add(m); errs.push(m); } };
+
+  // primeiro os que têm vaga no ritmo permitido; os saturados ficam para o fim
+  const ready = idx.filter(i => rateFree(proxyHost(S.proxies[i])));
+  const busyOnes = idx.filter(i => !ready.includes(i));
+  const order = ready.length ? ready.concat(busyOnes) : idx;
+
+  for(const i of order){
+    const tpl = S.proxies[i];
+    const target = tpl === "{URL}" ? url
+      : tpl.replace("{RAWURL}", url).replace("{URL}", encodeURIComponent(url));
+    const label = proxyHost(tpl);
+    if(!rateFree(label)){
+      // se houver outro repetidor livre, passa à frente; se este for o único
+      // caminho possível, mais vale esperar pela vaga do que falhar
+      const outro = order.some(j => j !== i && rateFree(proxyHost(S.proxies[j])));
+      const w = waitFor(label);
+      if(!outro && w > 0 && w < 62000){
+        if(w > 3000) UI.note(`A abrandar ${Math.ceil(w/1000)} s para não sobrecarregar`);
+        await sleep(w);
+      } else { note(`${label}: limite de ritmo`); continue; }
+    }
+    await holdHost(label);
+    markHit(label);
+    const ctrl = new AbortController();
+    const timer = setTimeout(()=>ctrl.abort(), timeout);
+    try{
+      const r = await fetch(target, {signal:ctrl.signal, redirect:"follow"});
+      clearTimeout(timer);
+      proxyFails[i] = 0;                       // respondeu: o serviço está acessível
+      if(r.ok) { proxyOK[i] = true; proxyRecusas[i] = 0; }
+      if(!r.ok){
+        if(r.status === 429 || r.status >= 500){
+          proxyScore[i] = (proxyScore[i]||0) - 1;
+          note(`${label}: serviço sobrecarregado (${r.status})`);
+          if(r.status === 429) await sleep(600);
+        } else if(r.status === 404 || r.status === 410){
+          note(`o endereço não existe (${r.status})`);
+        } else {
+          // 400 e 403 vindos de vários endereços diferentes significam que é o
+          // repetidor que recusa — normalmente por exigir registo prévio
+          // pode ser o serviço a recusar ou o destino a falhar através dele:
+          // baixa-lhe a prioridade, mas não o exclui
+          proxyRecusas[i] = (proxyRecusas[i]||0) + 1;
+          proxyScore[i] = (proxyScore[i]||0) - 2;
+          note(`${label}: recusou o pedido (${r.status})`);
+        }
+        continue;
+      }
+      const text = unwrap(decodeBytes(await r.arrayBuffer(), r.headers.get("content-type")));
+      if(!text || text.length < 120){ note(`${label}: resposta vazia`); continue; }
+      const isXml  = /<(rss|feed|rdf:RDF|channel)\b/i.test(text);
+      const isJson = /^\s*\{/.test(text) && /"items"\s*:/.test(text);
+      if(!isXml && !isJson){ note(`o endereço devolveu uma página, não um feed`); continue; }
+      proxyScore[i] = Math.min(8, (proxyScore[i]||0) + 2);
+      return { text, proxy: label };
+    }catch(e){
+      clearTimeout(timer);
+      const timedOut = e.name === "AbortError";
+      proxyScore[i] = (proxyScore[i]||0) - 1;
+      if(!timedOut){
+        // "Failed to fetch" repetido = o browser não consegue falar com este
+        // serviço. Só é excluído se nunca tiver funcionado nesta sessão — um
+        // serviço que já respondeu merece sempre nova oportunidade.
+        proxyFails[i] = (proxyFails[i]||0) + 1;
+        if(proxyFails[i] >= 3 && !proxyOK[i]) proxyDead.set(i, Date.now() + 5*6e4);
+      }
+      note(`${label}: ${timedOut ? "não respondeu a tempo"
+            : (proxyFails[i] >= 3 ? "sem acesso a este serviço" : "falha de rede momentânea")}`);
+    }finally{
+      freeHost(label);
+    }
+  }
+  // Se todos falharam e só existe um serviço acessível, vale mais insistir
+  // nele com mais paciência do que dar a fonte por perdida.
+  const vivos = [...new Set(idx.map(i => proxyHost(S.proxies[i])))];
+  if(vivos.length === 1 && !fetchThrough._insistindo){
+    fetchThrough._insistindo = true;
+    try{
+      const i = idx[0], tpl = S.proxies[i], label = proxyHost(tpl);
+      const target = tpl === "{URL}" ? url
+        : tpl.replace("{RAWURL}", url).replace("{URL}", encodeURIComponent(url));
+      await holdHost(label); markHit(label);
+      const ctrl = new AbortController();
+      const timer = setTimeout(()=>ctrl.abort(), Math.round(timeout * 1.6));
+      try{
+        const r = await fetch(target, {signal:ctrl.signal, redirect:"follow"});
+        clearTimeout(timer);
+        if(r.ok){
+          const text = unwrap(await r.text());
+          if(/<(rss|feed|rdf:RDF|channel)\b/i.test(text) || /"items"\s*:/.test(text)){
+            proxyOK[i] = true;
+            return { text, proxy: label + " (2.ª tentativa)" };
+          }
+        }
+      }catch{ /* desiste mesmo */ }
+      finally{ clearTimeout(timer); freeHost(label); }
+    } finally { fetchThrough._insistindo = false; }
+  }
+
+  const err = new Error(errs[0] || "sem repetidores configurados");
+  err.detail = errs.join(" · ");
+  throw err;
+}
+
+function parseJsonFeed(text, src){
+  let j; try{ j = JSON.parse(text); }catch{ return []; }
+  return (j.items || j.entries || []).map(it => cleanEntry({
+    title: it.title, link: it.link || it.url,
+    date: it.pubDate || it.date_published || it.published || it.updated,
+    description: it.description || it.summary || it.content_html || it.content || "",
+    sourceName: typeof it.author === "string" ? it.author : (it.author?.name || ""),
+    feedTitle: j.feed?.title || j.title,
+    cats: [].concat(it.tags || [], it.categories || []).join(" ")
+  }, src)).filter(Boolean);
+}
+
+function parseFeed(text, src){
+  if(/^\s*\{/.test(text)) return parseJsonFeed(text, src);
+  let doc = new DOMParser().parseFromString(text, "text/xml");
+  if(doc.querySelector("parsererror")) doc = new DOMParser().parseFromString(text, "text/html");
+  const nodes = [...doc.querySelectorAll("item"), ...doc.querySelectorAll("entry")];
+  const feedTitle = doc.querySelector("channel > title, feed > title")?.textContent || "";
+  const out = [];
+  for(const n of nodes){
+    const get = sel => n.querySelector(sel)?.textContent || "";
+    let link = get("link").trim();
+    if(!link){
+      const a = n.querySelector('link[rel="alternate"]') || n.querySelector("link[href]");
+      link = a?.getAttribute("href") || "";
+    }
+    if(!link){ const g = get("guid").trim(); if(/^https?:/.test(g)) link = g; }
+    const e = cleanEntry({
+      title: get("title"), link,
+      date: get("pubDate") || get("published") || get("updated") ||
+            n.getElementsByTagName("dc:date")[0]?.textContent || "",
+      description: get("description") || get("summary") || get("content"),
+      sourceName: n.querySelector("source")?.textContent || "",
+      feedTitle,
+      cats: [...n.querySelectorAll("category")]
+        .map(c => c.textContent.trim() || c.getAttribute("term") || "").filter(Boolean).slice(0,6).join(" ")
+    }, src);
+    if(e) out.push(e);
+  }
+  return out;
+}
+
+/* ------------------------- classificação e score ----------------------
+   As regras estão em lib/classificador.js, partilhado com a recolha
+   automática. Aqui só se juntam as palavras que cada pessoa acrescentou.  */
+let LEX = null;
+function compileLexicon(){
+  LEX = buildLexicon({
+    extraCore: S.extraCore, extraNoise: S.extraNoise,
+    sourceGroups: { ...Object.fromEntries(DEFAULT_SOURCES.map(s=>[s.id, s.group])),
+                    ...Object.fromEntries(S.sources.map(s=>[s.id, s.group])), minhas: "Minhas" }
+  });
+}
+function analyse(it){ if(!LEX) compileLexicon(); return analyseWith(LEX, it); }
+
+/* ------------------------------ vigias -------------------------------- */
+function watchHits(it){
+  if(!S.watch.length) return [];
+  const hay = " " + deacc(it.title + " " + it.dek) + " ";
+  return S.watch.filter(t => wordRx(t).test(hay));
+}
+
+/* --------------------------- termos em alta --------------------------- */
+const TREND_STOP = new Set(["portugal","governo","ministerio","comissao","europeia","uniao","europeu","novo","nova","ainda","apos","este","esta","mais","como","onde","segundo","depois","sobre","entre","hoje","ontem","pais","hoje","estado","ministra","ministro"]);
+function properNouns(title){
+  const toks = title.replace(/[^\p{L}\p{N}\s'-]/gu, " ").split(/\s+/).filter(Boolean);
+  const conn = new Set(["de","da","do","dos","das","e","of","the","and","para"]);
+  const out = []; let cur = [], start = -1;
+  const isCap = t => /^\p{Lu}/u.test(t);
+  for(let i=0;i<toks.length;i++){
+    const t = toks[i];
+    if(isCap(t) && t.length > 2){ if(!cur.length) start = i; cur.push(t); }
+    else if(cur.length && conn.has(t.toLowerCase()) && i+1 < toks.length && isCap(toks[i+1])) cur.push(t.toLowerCase());
+    else { if(cur.length && !(cur.length===1 && start===0)) out.push(cur.join(" ")); cur = []; }
+  }
+  if(cur.length && !(cur.length===1 && start===0)) out.push(cur.join(" "));
+  return out.filter(p => p.length > 3 && !TREND_STOP.has(deacc(p)));
+}
+function trending(list){
+  const counts = new Map();
+  for(const it of list){
+    for(const p of new Set(properNouns(it.title))){
+      const k = deacc(p);
+      const e = counts.get(k) || {label:p, n:0};
+      e.n++; counts.set(k, e);
+    }
+  }
+  return [...counts.values()].filter(e => e.n >= 2).sort((a,b)=>b.n-a.n).slice(0,12);
+}
+
+/* ------------------------------ varrimento ---------------------------- */
+async function fetchSource(src, offset=0, timeout=20000){
+  // 1) tentativa normal — um feed que não devolve nada conta como falha,
+  //    para que a reparação automática entre em acção
+  try{
+    const r = await fetchThrough(buildUrl(src), timeout, 99, offset);
+    if(!parseFeed(r.text, src).length) throw new Error("0 entradas — feed vazio ou noutro formato");
+    return { ...r, note:"" };
+  }catch(e){
+    if(src.type === "gnews") throw e;
+
+    // 2) o endereço pode ter mudado — experimentar variantes conhecidas
+    if(!src.noFeed){
+      for(const alt of urlVariants(src.url)){
+        try{
+          const r = await fetchThrough(alt, 8000, 3, offset);
+          if(parseFeed(r.text, src).length){
+            src.url = alt; persist();
+            return { ...r, note:"endereço corrigido" };
+          }
+        }catch{ /* variante seguinte */ }
+      }
+      src.noFeed = true; persist();
+    }
+
+    // 3) sem feed utilizável: procurar o mesmo sítio no Google Notícias
+    if(src.fallback !== false){
+      const host = hostOf(src.url);
+      if(host){
+        const alt = { ...src, type:"gnews", q:`site:${host}` };
+        const r = await fetchThrough(buildUrl(alt), 11000, 3, offset);
+        return { ...r, note:"sem feed — via pesquisa site:"+host, asGnews:true };
+      }
+    }
+    throw e;
+  }
+}
+
+async function runFetch(list, {useCache=true, onBatch=null} = {}){
+  const collected = [];
+  const done = new Set();          // fontes concluídas — as repetições não contam
+  const fresh = [];
+  for(const s2 of list){
+    const st = S.status[s2.id];
+    if(useCache && st?.state === "ok" && st.at && Date.now() - st.at < S.cacheMin*6e4){
+      S.status[s2.id] = { ...st, state:"ok", note:"em cache" };
+      done.add(s2.id);
+    } else {
+      S.status[s2.id] = {state:"wait"};
+      fresh.push(s2);
+    }
+  }
+
+  const worker = async (src, slot = 0, timeout = 11000) => {
+    const t0 = performance.now();
+    try{
+      const r = await fetchSource(src, slot, timeout);
+      const items = parseFeed(r.text, r.asGnews ? {...src, type:"gnews"} : src);
+      if(!items.length) throw new Error("0 entradas — feed vazio ou noutro formato");
+      S.status[src.id] = {state:"ok", n:items.length, ms:Math.round(performance.now()-t0),
+                          proxy:r.proxy, note:r.note, at:Date.now()};
+      collected.push(...items);
+      if(onBatch) onBatch(items);      // as notícias aparecem à medida que chegam
+    }catch(e){
+      const empty = /^0 entradas/.test(e.message||"");
+      S.status[src.id] = {state: empty ? "empty" : "bad", err:e.message||"erro",
+                          detail: empty ? "" : (e.detail||""),
+                          ms:Math.round(performance.now()-t0)};
+    }finally{
+      done.add(src.id);
+      UI.progress(done.size, list.length, src.name);
+    }
+  };
+
+  // Cinco tarefas em paralelo, cada uma a começar num repetidor diferente.
+  // É o paralelismo máximo que os serviços públicos toleram sem devolver 429.
+  const LANES = 5;
+  const queue = [...fresh];
+  await Promise.all(Array.from({length:Math.min(LANES, queue.length)}, async (_, k) => {
+    await sleep(k * 70);
+    while(queue.length){ await worker(queue.shift(), k); await sleep(90); }
+  }));
+
+  // segunda passagem, com mais paciência, só para as que falharam
+  const failed = fresh.filter(x => S.status[x.id]?.state === "bad");
+  if(failed.length){
+    UI.note(`A tentar de novo ${failed.length} ${failed.length===1?"fonte":"fontes"}`);
+    await sleep(400);
+    const q2 = [...failed];
+    await Promise.all(Array.from({length:Math.min(3, q2.length)}, async (_, k) => {
+      await sleep(k * 120);
+      while(q2.length){ await worker(q2.shift(), k + 1, 28000); await sleep(200); }
+    }));
+  }
+  return collected;
+}
+
+/* Diagnóstico completo de uma fonte: experimenta o endereço actual e, se
+   falhar, todas as variantes conhecidas, devolvendo o que aconteceu a cada
+   uma. Serve para o utilizador perceber se o problema é o feed ou a rede.  */
+async function probeSource(src){
+  const linhas = [];
+  const tentar = async (url, etiqueta) => {
+    const t0 = performance.now();
+    try{
+      const r = await fetchThrough(url, 13000);
+      const n = parseFeed(r.text, src).length;
+      linhas.push({url, etiqueta, ok:n > 0, n, proxy:r.proxy,
+                   ms:Math.round(performance.now()-t0),
+                   msg: n ? `${n} entradas via ${r.proxy}` : "respondeu, mas sem entradas"});
+      return n > 0;
+    }catch(e){
+      linhas.push({url, etiqueta, ok:false, ms:Math.round(performance.now()-t0),
+                   msg: e.detail || e.message});
+      return false;
+    }
+  };
+
+  if(src.type === "gnews"){
+    await tentar(buildUrl(src), "pesquisa");
+    return linhas;
+  }
+  if(await tentar(src.url, "endereço actual")) return linhas;
+  for(const alt of urlVariants(src.url)){
+    if(await tentar(alt, "variante")) return linhas;
+  }
+  const host = hostOf(src.url);
+  if(host) await tentar(buildUrl({type:"gnews", q:`site:${host}`}), "pesquisa por sítio");
+  return linhas;
+}
+
+async function testAll(){
+  if(S.scanning) return;
+  S.scanning = true; UI.scanStart();
+  resetProxies();
+  await runFetch(S.sources, {useCache:false});
+  S.scanning = false; UI.scanEnd();
+  const ok = S.sources.filter(x=>S.status[x.id]?.state==="ok").length;
+  UI.toast(`${ok} de ${S.sources.length} fontes responderam`);
+  renderSet();
+}
+
+
+let podeMarcarNovas = false;      // só há "novas" se já havia notícias antes desta recolha
+
+function merge(raw){
+  const byKey = new Map(S.items.map(it => [it.key, it]));
+  for(const it of raw){
+    const a = analyse(it);
+    if(a.score < KEEP_MIN && !it.own) continue;
+    const key = it.key || normTitle(it.title) || it.link;
+    if(!key) continue;
+    const prev = byKey.get(key);
+    if(prev){
+      let mudou = false;
+      for(const p of [it.publisher, ...(it.also || [])])
+        if(p && p !== prev.publisher && !prev.also.includes(p)){ prev.also.push(p); mudou = true; }
+      prev.srcs = prev.srcs || [prev.srcId];
+      for(const id of (it.srcs || [it.srcId])) if(id && !prev.srcs.includes(id)){ prev.srcs.push(id); mudou = true; }
+      if(!prev.dek && it.dek){ prev.dek = it.dek; mudou = true; }
+      if(it.own && !prev.own){ prev.own = true; mudou = true; }
+      if(it.note && it.note !== prev.note){ prev.note = it.note; mudou = true; }
+      if(mudou) dirty.add(key);
+      continue;
+    }
+    const novo = {
+      key, title: it.title, link: it.link, ts: it.ts, dek: it.dek || "", cats: it.cats || "",
+      publisher: it.publisher || "", srcName: it.srcName || "", srcId: it.srcId,
+      srcs: it.srcs || [it.srcId], also: [...(it.also || [])], seen: it.seen || Date.now(),
+      fresh: podeMarcarNovas, score: a.score, themes: a.themes, geo: a.geo, zones: a.zones, hits: a.hits
+    };
+    if(it.own) novo.own = true;
+    if(it.note) novo.note = it.note;
+    byKey.set(key, novo);
+    dirty.add(key);
+  }
+  S.items = [...byKey.values()].sort((x,y) => y.ts - x.ts);
+}
+
+/* Notícias guardadas com regras antigas são reavaliadas com o léxico actual.
+   Nada é apagado: o limiar só decide o que se mostra.                      */
+function reavaliar(){
+  compileLexicon();
+  for(const it of S.items){
+    const a = analyse(it);
+    Object.assign(it, { score:a.score, themes:a.themes, geo:a.geo, zones:a.zones, hits:a.hits });
+    it.srcs = it.srcs || [it.srcId];
+    it.also = it.also || [];
+  }
+}
+
+/* ----------------------------- filtragem ------------------------------ */
+function filtered(){
+  const f = S.filters;
+  const cut = f.period ? Date.now() - f.period*864e5 : 0;
+  const q = deacc(f.q.trim());
+  const desligadas = new Set(S.sources.filter(s => !s.enabled).map(s => s.id));
+  for(const it of S.items) it._w = watchHits(it);
+  const out = S.items.filter(it => {
+    if(f.star){                                   // Guardados: sem prazo nem limiar
+      if(!S.star[it.key] && !it.own) return false;
+      if(q && !deacc(it.title+" "+it.dek+" "+it.publisher+" "+(it.note||"")).includes(q)) return false;
+      return true;
+    }
+    if(it.ts < cut) return false;
+    if(!it.own && it.score < S.minScore) return false;
+    if(!it.own && (it.srcs || [it.srcId]).every(id => desligadas.has(id))) return false;
+    const zs = it.zones || ["pt"];
+    if(f.geo === "PT"){ if(!zs.includes("pt")) return false; }
+    else if(f.geo === "UE"){ if(!zs.includes("eu")) return false; }
+    else if(f.geo !== "all"){ if(!zs.some(z => S.zones[z])) return false; }
+    if(f.unread && S.read.has(it.key)) return false;
+    if(f.watch && !it._w.length) return false;
+    if(S.offThemes.size && it.themes.length && it.themes.every(t=>S.offThemes.has(t))) return false;
+    if(q && !deacc(it.title+" "+it.dek+" "+it.publisher).includes(q)) return false;
+    return true;
+  });
+  if(f.sort === "rel") out.sort((a,b)=> (b.score + b._w.length*6) - (a.score + a._w.length*6) || b.ts-a.ts);
+  return out;
+}
+
+
+/* ------------------------- arquivo no repositório -----------------------
+   Quando há um repositório ligado, as notícias vêm da recolha que lá corre
+   de hora a hora — um único pedido, sem repetidores. O browser só vai
+   buscar directamente as fontes que acrescentaste e que o servidor não lê. */
+let ARQ = null;                   // { base, idx, at } do arquivo em uso
+let REPO_CONFIG = "";             // de config.json, ao lado da aplicação
+
+/* O arquivo de todos: o que a versão publicada traz de origem ou o que está em
+   config.json. Na versão técnica podes escolher outro.                      */
+const repoAtual = () => S.repo || REPO_CONFIG || REPO_ORIGEM;
+function repoInfo(txt = repoAtual()){
+  let r = String(txt || "").trim().replace(/^https?:\/\/(www\.)?github\.com\//i, "")
+            .replace(/\.git$/, "").replace(/\/+$/, "");
+  const m = /^([\w.-]+)\/([\w.-]+)(?:@([\w./-]+)|\/tree\/([\w./-]+))?$/.exec(r);
+  return m ? { owner: m[1], name: m[2], branch: m[3] || m[4] || "main" } : null;
+}
+/* O GitHub Pages serve o arquivo por uma rede de distribuição e aceita pedidos
+   de qualquer sítio: aguenta muitos utilizadores. O endereço "raw" fica como
+   reserva.                                                                   */
+function pagesBase(r){
+  const o = r.owner.toLowerCase();
+  return r.name.toLowerCase() === `${o}.github.io` ? `https://${o}.github.io/data/` : `https://${o}.github.io/${r.name}/data/`;
+}
+function archiveBases(){
+  const out = [];
+  if(/^https?:$/.test(location.protocol)) out.push(new URL("data/", location.href).href);
+  const r = repoInfo();
+  if(r){ out.push(pagesBase(r)); out.push(`https://raw.githubusercontent.com/${r.owner}/${r.name}/${r.branch}/data/`); }
+  return [...new Set(out)];
+}
+async function lerConfig(){
+  if(!/^https?:$/.test(location.protocol)) return;
+  try{
+    const c = await getJson(new URL("config.json", location.href).href + bustArq(), 6000);
+    if(c && typeof c.arquivo === "string" && repoInfo(c.arquivo)) REPO_CONFIG = c.arquivo.trim();
+  }catch{ /* sem config.json: o arquivo, se houver, está no mesmo sítio */ }
+}
+async function getJson(url, ms = 15000){
+  const ctrl = new AbortController(), t = setTimeout(() => ctrl.abort(), ms);
+  try{
+    const r = await fetch(url, { signal: ctrl.signal, cache: "no-store" });
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    return JSON.parse(decodeBytes(await r.arrayBuffer(), r.headers.get("content-type")));
+  } finally { clearTimeout(t); }
+}
+const bustArq = () => "?v=" + Math.floor(Date.now() / 3e5);
+
+async function ligarArquivo(){
+  let melhor = null;
+  for(const base of archiveBases()){
+    try{
+      const idx = await getJson(base + "indice.json" + bustArq(), 12000);
+      if(!idx || !idx.versao) continue;
+      const at = Date.parse(idx.atualizado || "") || 0;
+      if(!melhor || at > melhor.at) melhor = { base, idx, at };
+      if(at && Date.now() - at < 3 * 36e5) break;     // recente: não vale a pena ver o seguinte
+    }catch{ /* próximo */ }
+  }
+  ARQ = melhor;
+  return melhor;
+}
+
+/* Traz um mês do arquivo para o aparelho, onde fica para sempre. */
+async function trazerMes(mes){
+  if(!ARQ) return [];
+  const d = await getJson(ARQ.base + `arquivo/${mes}.json` + bustArq(), 40000);
+  const items = (d.items || []).map(x => {
+    const a = analyse(x);
+    return { ...x, srcs: x.srcs || [x.srcId], also: x.also || [],
+             score: a.score, themes: a.themes, geo: a.geo, zones: a.zones, hits: a.hits };
+  });
+  await DB.put(items).catch(() => {});
+  return items;
+}
+
+/* --------------------------- as tuas notícias -------------------------- */
+function tituloDoEndereco(u){
+  try{
+    const seg = new URL(u).pathname.split("/").filter(Boolean)
+      .reverse().find(x => /[a-z]{3,}/i.test(x) && !/^\d+$/.test(x)) || "";
+    const t = decodeURIComponent(seg).replace(/\.(html?|php|aspx?)$/i, "").replace(/[-_+]+/g, " ").replace(/\s\d{5,}$/, "").trim();
+    return t ? t.charAt(0).toUpperCase() + t.slice(1) : u;
+  }catch{ return u; }
+}
+function novaMinha({ title, link, ts, note, publisher }){
+  link = String(link || "").trim();
+  title = String(title || "").trim() || (link ? tituloDoEndereco(link) : "");
+  if(!title) return null;
+  const e = cleanEntry({ title, link, date: new Date(ts || Date.now()).toISOString(), sourceName: publisher || "" },
+                       { id: "minhas", type: "rss", name: "As minhas notícias" });
+  if(!e) return null;
+  return { ...e, own: true, note: String(note || "").slice(0, 600), srcs: ["minhas"], seen: Date.now() };
+}
+
+/* Lê um ficheiro de notícias: o que a Sentinela exporta, uma folha de cálculo
+   em CSV, ou texto com uma ligação por linha.                              */
+function lerFicheiroNoticias(nome, texto){
+  const ext = (/\.(\w+)$/.exec(nome.toLowerCase()) || [])[1] || "";
+  const sa = k => deacc(k).replace(/[^a-z]/g, "");
+  const CAMPOS = { title:["title","titulo","headline","nome"], link:["link","ligacao","url","endereco","href"],
+    date:["ts","date","data","pubdate","publicado"], note:["note","nota","notas","comentario","observacoes"],
+    publisher:["publisher","fonte","publicacao","jornal","source"] };
+  const campo = (o, n) => { for(const k of Object.keys(o)) if(CAMPOS[n].includes(sa(k))) return o[k]; return ""; };
+  let brutos = [];
+  texto = texto.replace(/^﻿/, "");
+  if(ext === "json"){
+    const j = JSON.parse(texto);
+    brutos = Array.isArray(j) ? j : (j.noticias || j.items || j.minhas || []);
+  } else if(ext === "csv" || ext === "tsv"){
+    const l0 = texto.split("\n")[0];
+    const sep = [";", "\t", ","].sort((a,b) => l0.split(b).length - l0.split(a).length)[0];
+    const linhas = []; let cur = [], c = "", aspas = false;
+    for(let i = 0; i < texto.length; i++){
+      const ch = texto[i];
+      if(aspas){ if(ch === '"' && texto[i+1] === '"'){ c += '"'; i++; } else if(ch === '"') aspas = false; else c += ch; }
+      else if(ch === '"') aspas = true;
+      else if(ch === sep){ cur.push(c); c = ""; }
+      else if(ch === "\n" || ch === "\r"){ if(ch === "\r" && texto[i+1] === "\n") i++; cur.push(c); c = "";
+        if(cur.some(x => x.trim())) linhas.push(cur); cur = []; }
+      else c += ch;
+    }
+    cur.push(c); if(cur.some(x => x.trim())) linhas.push(cur);
+    const [cab, ...resto] = linhas;
+    brutos = resto.map(l => Object.fromEntries(cab.map((k, i) => [k, l[i] ?? ""])));
+  } else {
+    for(const linha of texto.split(/\r?\n/)){
+      const md = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/.exec(linha);
+      const url = md ? md[2] : (/(https?:\/\/\S+)/.exec(linha) || [])[1];
+      if(!url) continue;
+      const data = (/(\d{4}-\d{2}-\d{2})/.exec(linha) || [])[1] || "";
+      brutos.push({ title: md ? md[1] : "", link: url.replace(/[).,;]+$/, ""), date: data });
+    }
+  }
+  return brutos.map(b => {
+    let ts = campo(b, "date"); ts = typeof ts === "number" ? ts : Date.parse(String(ts || ""));
+    const it = novaMinha({ title: campo(b, "title"), link: campo(b, "link"), ts: isNaN(ts) ? 0 : ts,
+                           note: campo(b, "note"), publisher: campo(b, "publisher") });
+    if(it && b.own === false) delete it.own;        // era um favorito, não uma notícia tua
+    return it;
+  }).filter(Boolean);
+}
+
+function exportarMinhas(){
+  const lista = S.items.filter(i => i.own || S.star[i.key]);
+  return { formato: "sentinela-minhas", versao: 1, exportado: new Date().toISOString(),
+    noticias: lista.map(i => ({ title: i.title, link: i.link, ts: i.ts, publisher: i.publisher,
+                                note: i.note || "", key: i.key, own: !!i.own })) };
+}
+
+/* Envia para a pasta entrada/ do repositório. Precisa de uma chave de acesso
+   com permissão de escrita só nesse repositório.                            */
+async function enviarParaRepositorio({ todas = false } = {}){
+  if(!ADMIN) throw new Error("só na versão de quem mantém o arquivo");
+  const r = repoInfo();
+  if(!r || !S.token) throw new Error("sem repositório ou chave");
+  const lista = S.items.filter(i => (i.own || S.star[i.key]) && (todas || !S.sent.has(i.key)));
+  if(!lista.length) return 0;
+  const corpo = JSON.stringify({ ...exportarMinhas(), noticias: exportarMinhas().noticias
+    .filter(n => lista.some(i => i.key === n.key)) }, null, 1);
+  const bytes = new TextEncoder().encode(corpo);
+  let bin = ""; for(let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  const nome = `entrada/app-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+  const resp = await fetch(`https://api.github.com/repos/${r.owner}/${r.name}/contents/${nome}`, {
+    method: "PUT",
+    headers: { "Authorization": `Bearer ${S.token}`, "Accept": "application/vnd.github+json",
+               "X-GitHub-Api-Version": "2022-11-28" },
+    body: JSON.stringify({ message: `Sentinela: ${lista.length} notícias guardadas`, content: btoa(bin), branch: r.branch })
+  });
+  if(!resp.ok){
+    const e = new Error(resp.status === 401 ? "chave inválida" : resp.status === 403 || resp.status === 404
+      ? "a chave não tem permissão de escrita neste repositório" : "HTTP " + resp.status);
+    e.status = resp.status; throw e;
+  }
+  for(const i of lista) S.sent.add(i.key);
+  persist();
+  return lista.length;
+}
+
+/* --------------------------- exportações ------------------------------ */
+function download(name, text, mime="text/plain"){
+  const b = new Blob([text], {type:mime+";charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(b); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+}
+function briefingMd(){
+  const list = filtered();
+  const d = new Date();
+  let out = `# Briefing agroflorestal — ${d.toLocaleDateString("pt-PT",{day:"numeric",month:"long",year:"numeric"})}\n\n`;
+  out += `${list.length} notícias · período: ${S.filters.period?S.filters.period+" dias":"tudo"}${S.filters.q?` · pesquisa: “${S.filters.q}”`:""}\n\n`;
+  for(const th of THEMES){
+    const sub = list.filter(it=>it.themes[0]===th.id);
+    if(!sub.length) continue;
+    out += `## ${th.label}\n\n`;
+    for(const it of sub){
+      const dt = new Date(it.ts).toLocaleDateString("pt-PT",{day:"2-digit",month:"2-digit"});
+      out += `- **${it.title}** — ${it.publisher}, ${dt}. [ligação](${it.link})\n`;
+      if(it.dek) out += `  ${it.dek}\n`;
+    }
+    out += `\n`;
+  }
+  const rest = list.filter(it=>!it.themes.length);
+  if(rest.length){
+    out += `## Outras\n\n`;
+    for(const it of rest) out += `- **${it.title}** — ${it.publisher}. [ligação](${it.link})\n`;
+  }
+  return out;
+}
+function csv(){
+  const q = s => `"${String(s??"").replace(/"/g,'""')}"`;
+  const rows = [["data","hora","titulo","publicacao","temas","ambito","pontuacao","ligacao"].join(",")];
+  for(const it of filtered()){
+    const d = new Date(it.ts);
+    rows.push([q(d.toLocaleDateString("pt-PT")), q(fmtTime(d)), q(it.title), q(it.publisher),
+      q(it.themes.map(t=>THEME_BY_ID[t].label).join("; ")), q(it.geo), it.score, q(it.link)].join(","));
+  }
+  return "\uFEFF" + rows.join("\n");
+}
+
+
+
+/* Duas versões do mesmo ficheiro: "utilizador" esconde tudo o que é técnico;
+   "tecnica" mostra moradas, erros na íntegra e serviços de ligação.        */
+const BUILD = "tecnica";
+const ADMIN = BUILD === "tecnica";   // quem mantém o arquivo: escolhe o repositório e envia notícias
+if(Store.get("sen.advanced", null) === null) S.advanced = (BUILD === "tecnica");
+
+/* =========================== paleta dos temas ===========================
+   Escala categórica inspirada nas legendas de classificação climática:
+   matizes distintas e legíveis lado a lado, sem hierarquia entre elas.      */
+const PALETTE = {
+  politica:"#6BA3E0", floresta:"#4FA86B", fogo:"#E2603F", agua:"#3FBFC4",
+  clima:"#A7C64E", mercados:"#E5A93F", producao:"#C97BC0", pecuaria:"#C98A5E",
+  inovacao:"#9B8BE8", rural:"#93A6A0"
+};
+THEMES.forEach(t => { if(PALETTE[t.id]) t.color = PALETTE[t.id]; });
+
+/* ============================== interface ============================== */
+const DAYS = 14;                 // janela do boletim
+const buzz = ms => { try{ navigator.vibrate && navigator.vibrate(ms); }catch{} };
+const dayKey = ts => { const d = new Date(ts); d.setHours(0,0,0,0); return +d; };
+
+const V = {
+  view: "fluxo",
+  range: null,          // {from,to} escolhido no boletim
+  pick: null,           // [i,j] colunas seleccionadas
+  detail: null,
+  setTab: "fontes",
+  booted: false,
+  undo: null
+};
+
+const UI = {
+  progress(done, total, name){
+    const r = $("#btnScan .ring .arc");
+    if(r) r.style.strokeDashoffset = (119.4 * (1 - done/total)).toFixed(1);
+    UI.busy(`À procura de notícias · ${done}/${total}`, name || "", done/total);
+    if($("#shSet").classList.contains("on") && V.setTab === "fontes") renderSet();
+  },
+  note(msg){ UI.busy(msg, "", null); },
+
+  /* aviso persistente enquanto a recolha decorre */
+  busy(msg, sub, frac){
+    const t = $("#toast");
+    clearTimeout(UI._tt);
+    t.classList.add("on","busy");
+    $("#toastMsg").textContent = msg;
+    $("#toastSub").textContent = sub || "";
+    $("#toastAct").style.display = "none";
+    if(frac !== null && frac !== undefined) $("#toastProg").style.width = (frac*100).toFixed(0)+"%";
+  },
+
+  scanStart(){
+    $("#live").classList.add("live");
+    $("#btnScan").classList.add("busy");
+    $("#toastProg").style.width = "0%";
+    UI.busy("À procura de notícias", "a contactar as fontes", 0);
+    if(!S.items.length) skeletons();
+  },
+  scanEnd(){
+    $("#live").classList.remove("live");
+    $("#btnScan").classList.remove("busy");
+    const r = $("#btnScan .ring .arc");
+    if(r) r.style.strokeDashoffset = 119.4;
+    $("#toast").classList.remove("busy");
+    $("#toastProg").style.width = "0%";
+  },
+  toast(msg, actLabel, act){
+    const t = $("#toast");
+    t.classList.remove("busy");
+    $("#toastMsg").textContent = msg;
+    $("#toastSub").textContent = "";
+    $("#toastProg").style.width = "0%";
+    const b = $("#toastAct");
+    b.textContent = actLabel || "";
+    b.style.display = actLabel ? "" : "none";
+    const hide = () => t.classList.remove("on");
+    b.onclick = () => { act && act(); hide(); };
+    t.classList.add("on");
+    clearTimeout(UI._tt);
+    UI._tt = setTimeout(hide, actLabel ? 5200 : 2800);
+  }
+};
+
+/* ------------------------------ selecção ------------------------------ */
+function inRange(it){
+  if(!V.range) return true;
+  return it.ts >= V.range.from && it.ts < V.range.to;
+}
+function visible(){ return filtered().filter(inRange); }
+
+function applyView(){
+  S.filters.watch = V.view === "vigias";
+  S.filters.star  = V.view === "guardados";
+  document.querySelectorAll("nav button").forEach(b =>
+    b.classList.toggle("on", b.dataset.view === V.view));
+}
+
+/* ------------------------- boletim de fluxo --------------------------- */
+function dayBuckets(){
+  const today = dayKey(Date.now());
+  const days = Array.from({length:DAYS}, (_,k) => today - (DAYS-1-k)*864e5);
+  const base = filtered();               // sem o filtro de intervalo
+  const map = new Map(days.map(d => [d, {total:0, by:{}}]));
+  for(const it of base){
+    const k = dayKey(it.ts);
+    const b = map.get(k); if(!b) continue;
+    b.total++;
+    const th = it.themes[0] || "rural";
+    b.by[th] = (b.by[th]||0) + 1;
+  }
+  return days.map(d => ({day:d, ...map.get(d)}));
+}
+
+function renderBulletin(){
+  const bs = dayBuckets();
+  const chart = $("#chart");
+  const axis  = $("#axis");
+  const grand = bs.reduce((a,b)=>a+b.total, 0);
+  const WD = ["D","S","T","Q","Q","S","S"];
+  const todayK = dayKey(Date.now());
+
+  if(!grand){
+    chart.className = "chart void";
+    chart.innerHTML = `<span>${S.scanning ? "a recolher" : "sem notícias nestes 14 dias"}</span>`;
+    axis.innerHTML = ""; $("#bSel").className = "b-sel";
+    $("#bSel").innerHTML = "<span>14 dias</span>"; V._days = bs; return;
+  }
+
+  const H = 58;                         // altura útil; o resto da caixa fica para a etiqueta
+  const MAXSEG = 6;                     // temas mostrados por coluna
+  const peak = Math.max(...bs.map(b=>b.total));
+  chart.className = "chart";
+
+  chart.innerHTML = bs.map((b,i) => {
+    const d = new Date(b.day);
+    const weekend = [0,6].includes(d.getDay()) ? " weekend" : "";
+    const off  = V.pick && (i < V.pick[0] || i > V.pick[1]) ? " off" : "";
+    const pick = V.pick && i >= V.pick[0] && i <= V.pick[1] ? " pick" : "";
+
+    if(!b.total) return `<span class="col${weekend}${off}${pick}" data-i="${i}"><span class="zero"></span></span>`;
+
+    // até seis temas por coluna; o resto agrupa-se, para a coluna não crescer
+    let parts = Object.entries(b.by).sort((a,c)=>c[1]-a[1]);
+    if(parts.length > MAXSEG){
+      const rest = parts.slice(MAXSEG-1).reduce((a,c)=>a+c[1], 0);
+      parts = parts.slice(0, MAXSEG-1).concat([["_rest", rest]]);
+    }
+    const gaps = (parts.length - 1) * 1;
+    const need = parts.length * 3 + gaps;                 // mínimo legível
+    const bar  = Math.max(need, Math.round(b.total / peak * H));
+    const avail = bar - gaps;
+
+    let hs = parts.map(([,n]) => Math.max(3, Math.round(n / b.total * avail)));
+    // acerta o total para que a coluna tenha exactamente a altura prevista
+    let sum = hs.reduce((a,c)=>a+c, 0), guard = 0;
+    while(sum !== avail && guard++ < 60){
+      let k = 0;
+      hs.forEach((h,j) => { if(sum > avail ? h > hs[k] : h < hs[k]) k = j; });
+      if(sum > avail && hs[k] <= 3) break;
+      hs[k] += sum > avail ? -1 : 1;
+      sum = hs.reduce((a,c)=>a+c, 0);
+    }
+
+    const segs = parts.map(([id],k) =>
+      `<span class="seg${k===parts.length-1?" cap":""}" style="height:${hs[k]}px;background:${
+        id === "_rest" ? "var(--dim)" : (THEME_BY_ID[id]?.color || "var(--dim)")}"></span>`
+    ).join("");
+    const label = (pick && V.pick[0] === V.pick[1]) || b.total === peak
+      ? `<span class="val">${b.total}</span>` : "";
+    return `<span class="col${weekend}${off}${pick}" data-i="${i}">${label}<span class="stack">${segs}</span></span>`;
+  }).join("");
+
+  // Eixo: dia do mês, com o mês indicado na primeira coluna e a cada mudança.
+  axis.innerHTML = bs.map((b,i) => {
+    const d = new Date(b.day);
+    const prev = i ? new Date(bs[i-1].day) : null;
+    const newMonth = !prev || prev.getMonth() !== d.getMonth();
+    const isToday = b.day === todayK;
+    const txt = newMonth ? `${d.getDate()}/${d.getMonth()+1}` : String(d.getDate());
+    return `<span class="${isToday ? "today" : newMonth ? "mark" : ""}">${txt}</span>`;
+  }).join("");
+
+  const fmt = x => new Date(x).toLocaleDateString("pt-PT",{day:"numeric",month:"short"});
+  const sel = $("#bSel");
+  if(V.pick){
+    const a = bs[V.pick[0]].day, b2 = bs[V.pick[1]].day;
+    sel.className = "b-sel on";
+    sel.innerHTML = `<span>${fmt(a)}${a===b2?"":" – "+fmt(b2)}</span><button id="clrRange" aria-label="Limpar intervalo">✕</button>`;
+  } else {
+    sel.className = "b-sel";
+    sel.innerHTML = `<span>${fmt(bs[0].day)} — hoje</span>`;
+  }
+  V._days = bs;
+}
+
+function chartPick(i, j){
+  V.pick = [Math.min(i,j), Math.max(i,j)];
+  const bs = V._days;
+  V.range = { from: bs[V.pick[0]].day, to: bs[V.pick[1]].day + 864e5 };
+  render();
+}
+(function chartGestures(){
+  const chart = $("#chart");
+  let start = null;
+  const idxAt = x => {
+    const r = chart.getBoundingClientRect();
+    return Math.max(0, Math.min(DAYS-1, Math.floor((x - r.left) / (r.width/DAYS))));
+  };
+  chart.addEventListener("pointerdown", e => {
+    start = idxAt(e.clientX); chart.setPointerCapture(e.pointerId);
+    chartPick(start, start); buzz(8);
+  });
+  chart.addEventListener("pointermove", e => {
+    if(start === null) return;
+    const i = idxAt(e.clientX);
+    if(!V.pick || i !== V.pick[1] && i !== V.pick[0]) chartPick(start, i);
+  });
+  const end = () => { start = null; };
+  chart.addEventListener("pointerup", end);
+  chart.addEventListener("pointercancel", end);
+})();
+document.addEventListener("click", e => {
+  if(e.target.id === "clrRange"){ V.pick = null; V.range = null; render(); }
+});
+
+/* --------------------------- pílulas de tema -------------------------- */
+function renderThemeRail(list){
+  const counts = {};
+  for(const it of list) for(const t of it.themes) counts[t] = (counts[t]||0)+1;
+  const rail = $("#themeRail");
+  const all = !S.offThemes.size;
+  rail.innerHTML =
+    `<button class="pill acc ${all?"on":""}" data-theme="__all">Todos <span class="n">${list.length}</span></button>` +
+    THEMES.filter(t=>counts[t.id]).map(t =>
+      `<button class="pill ${S.offThemes.has(t.id)?"":"on"}" data-theme="${t.id}">
+        <span class="dot" style="background:${t.color}"></span>${t.label}
+        <span class="n">${counts[t.id]}</span></button>`).join("");
+}
+$("#themeRail").addEventListener("click", e => {
+  const b = e.target.closest("[data-theme]"); if(!b) return;
+  buzz(6);
+  const id = b.dataset.theme;
+  if(id === "__all"){ S.offThemes.clear(); }
+  else{
+    // primeiro toque isola o tema; toques seguintes ligam e desligam
+    const onlyThis = S.offThemes.size === THEMES.length - 1 && !S.offThemes.has(id);
+    if(!S.offThemes.size) THEMES.forEach(t => { if(t.id !== id) S.offThemes.add(t.id); });
+    else if(onlyThis) S.offThemes.clear();
+    else S.offThemes.has(id) ? S.offThemes.delete(id) : S.offThemes.add(id);
+  }
+  render();
+});
+
+function renderFilters(){
+  const f = S.filters;
+  const nAg = ZONES.filter(z=>z.group==="ag" && S.zones[z.id]).length + (S.zones.other?1:0);
+  const base = S.zones.eu ? "PT + Europa" : "Só Portugal";
+  const geoTxt = f.geo === "PT" ? "Só Portugal"
+               : f.geo === "UE" ? "Só União Europeia"
+               : f.geo === "all" ? "Todo o mundo"
+               : nAg ? `${base} +${nAg}` : base;
+  $("#filterRail").innerHTML =
+    `<button class="pill ${f.unread?"acc on":""}" data-f="unread">Por ler</button>
+     <button class="pill ${f.geo?"acc on":""}" data-f="geo">${geoTxt}</button>
+     <button class="pill ${f.sort==="rel"?"acc on":""}" data-f="sort">${f.sort==="rel"?"Mais relevantes":"Mais recentes"}</button>
+     <button class="pill" data-f="brief">Briefing</button>` +
+    (V.view === "guardados" ? `<button class="pill acc on" data-f="add">+ Acrescentar</button>` : "");
+}
+$("#filterRail").addEventListener("click", e => {
+  const b = e.target.closest("[data-f]"); if(!b) return;
+  buzz(6);
+  const f = S.filters;
+  if(b.dataset.f === "unread") f.unread = !f.unread;
+  if(b.dataset.f === "geo")    f.geo = f.geo === "" ? "PT" : f.geo === "PT" ? "UE"
+                                       : f.geo === "UE" ? "all" : "";
+  if(b.dataset.f === "sort")   f.sort = f.sort === "rel" ? "data" : "rel";
+  if(b.dataset.f === "add"){ abrirAcrescentar(); return; }
+  if(b.dataset.f === "brief"){
+    const txt = briefingMd();
+    if(navigator.share){
+      navigator.share({title:"Briefing agroflorestal", text:txt}).catch(()=>{});
+    } else {
+      download(`briefing-${new Date().toISOString().slice(0,10)}.md`, txt, "text/markdown");
+      UI.toast("Briefing transferido");
+    }
+    return;
+  }
+  render();
+});
+
+function renderTrend(list){
+  const top = trending(list).slice(0,10);
+  $("#trendRail").innerHTML = top.length
+    ? `<span class="pill" style="border:0;color:var(--dim);padding-left:0">Em alta</span>` +
+      top.map(e=>`<button class="pill" data-term="${esc(e.label)}"><b>${esc(e.label)}</b><span class="n">${e.n}</span></button>`).join("")
+    : "";
+}
+$("#trendRail").addEventListener("click", e => {
+  const b = e.target.closest("[data-term]"); if(!b) return;
+  openSearch(b.dataset.term);
+});
+
+/* ------------------------------- cartões ------------------------------ */
+function cardHtml(it){
+  const d = new Date(it.ts);
+  it.themes = it.themes || []; it.also = it.also || [];
+  const col = it._w?.length ? "var(--accent)" : (it.themes.length ? THEME_BY_ID[it.themes[0]].color : "var(--dim)");
+  const tags = (it._w||[]).slice(0,2).map(t=>`<span class="tag w">◎ ${esc(t)}</span>`).join("")
+    + it.themes.slice(0,2).map(t=>`<span class="tag" style="border-color:${THEME_BY_ID[t].color};color:${THEME_BY_ID[t].color}">${THEME_BY_ID[t].label}</span>`).join("");
+  return `<article class="card${S.read.has(it.key)?" read":""}${it._w?.length?" watch":""}" data-key="${esc(it.key)}">
+    <div class="under"><span class="l">★ Guardar</span><span class="r">Lida ✓</span></div>
+    <div class="face">
+      <span class="spine" style="background:${col}"></span>
+      <div class="c-meta">
+        <span class="t">${fmtTime(d)}</span>
+        <span class="p">${esc(it.publisher)}</span>
+        ${it.also.length?`<span class="also">+${it.also.length}</span>`:""}
+        ${it.fresh?`<span class="new">novo</span>`:""}
+        ${it.own?`<span class="mine">tua</span>`:""}
+      </div>
+      <h3>${esc(it.title)}</h3>
+      ${it.note?`<p class="c-note">${esc(it.note)}</p>`:""}
+      <div class="c-foot">${tags}<span class="star${S.star[it.key]?" on":""}">${S.star[it.key]?"★":"☆"}</span></div>
+    </div>
+  </article>`;
+}
+
+function skeletons(){
+  $("#feed").innerHTML = Array.from({length:5}, ()=>`<div class="skel"></div>`).join("");
+}
+
+function render(){
+  applyView();
+  const list = visible();
+  renderBulletin();
+  renderThemeRail(list);
+  renderFilters();
+  renderTrend(list);
+
+  const porLer = S.items.filter(i => !S.read.has(i.key)).length;
+  const bd = $("#badgeUnread");
+  bd.hidden = !porLer; bd.textContent = porLer > 99 ? "99+" : porLer;
+
+  $("#bCount").textContent = list.length;
+  $("#bLabel").textContent = list.length === 1 ? "notícia" : "notícias";
+
+  const feed = $("#feed");
+  if(!list.length){ feed.innerHTML = emptyHtml(); return; }
+
+  let html = "", lastDay = "";
+  const byDay = {};
+  for(const it of list) byDay[fmtDay(it.ts)] = (byDay[fmtDay(it.ts)]||0)+1;
+  for(const it of list){
+    const day = fmtDay(it.ts);
+    if(day !== lastDay){
+      lastDay = day;
+      html += `<div class="daysep"><b>${esc(day)}</b><span class="ln"></span>
+        <span class="n">${byDay[day]}</span>
+        <button class="dayread" data-day="${esc(day)}" aria-label="Marcar o dia como lido">✓</button></div>`;
+    }
+    html += cardHtml(it);
+  }
+  feed.innerHTML = html;
+}
+
+function emptyHtml(){
+  if(!S.items.length) return `<div class="empty"><h4>Sem notícias recolhidas</h4>
+    <p>Varre as fontes para começar. Demora cerca de meio minuto na primeira vez.</p>
+    <button class="btn acc" onclick="scan()">Varrer agora</button></div>`;
+  if(V.view === "vigias") return `<div class="empty"><h4>Nenhuma vigia activada</h4>
+    <p>As vigias assinalam assuntos que estás a seguir — um dossiê, uma entidade, uma região — assim que aparecem no fluxo.</p>
+    <button class="btn" onclick="openSet('temas')">Definir vigias</button></div>`;
+  if(V.view === "guardados") return `<div class="empty"><h4>Nada guardado ainda</h4>
+    <p>Arrasta um cartão para a direita, ou toca na estrela, para o guardares aqui. O que guardas não expira.</p>
+    <button class="btn acc" onclick="abrirAcrescentar()">Acrescentar uma notícia tua</button></div>`;
+  return `<div class="empty"><h4>Nada dentro destes filtros</h4>
+    <p>Alarga o intervalo no boletim ou volta a ligar os temas.</p>
+    <button class="btn" onclick="resetFilters()">Limpar filtros</button></div>`;
+}
+function resetFilters(){
+  S.offThemes.clear(); V.pick = null; V.range = null; S.filters.q = "";
+  $("#q").value = ""; render();
+}
+
+/* ---------------------------- gestos no cartão ------------------------- */
+(function swipe(){
+  const feed = $("#feed");
+  let card = null, face = null, x0 = 0, y0 = 0, dx = 0, lock = null;
+
+  feed.addEventListener("pointerdown", e => {
+    const c = e.target.closest(".card"); if(!c) return;
+    card = c; face = c.querySelector(".face");
+    x0 = e.clientX; y0 = e.clientY; dx = 0; lock = null;
+    face.style.transition = "none";
+  });
+  feed.addEventListener("pointermove", e => {
+    if(!card) return;
+    const mx = e.clientX - x0, my = e.clientY - y0;
+    if(lock === null){
+      if(Math.abs(mx) > 10 && Math.abs(mx) > Math.abs(my)) lock = "x";
+      else if(Math.abs(my) > 10) lock = "y";
+    }
+    if(lock !== "x") return;
+    e.preventDefault();
+    dx = Math.max(-140, Math.min(140, mx));
+    face.style.transform = `translateX(${dx}px)`;
+    card.querySelector(".under").style.opacity = Math.min(1, Math.abs(dx)/70);
+  });
+  const release = () => {
+    if(!card) return;
+    const c = card, f = face, d = dx;
+    f.style.transition = "transform .26s cubic-bezier(.32,.72,0,1)";
+    f.style.transform = "";
+    const u = c.querySelector(".under"); if(u) u.style.opacity = 0;
+    card = null; face = null;
+    if(Math.abs(d) < 72) return;
+    const key = c.dataset.key;
+    buzz(12);
+    if(d > 0) toggleStar(key, true);
+    else markRead(key);
+  };
+  feed.addEventListener("pointerup", release);
+  feed.addEventListener("pointercancel", release);
+
+  feed.addEventListener("click", e => {
+    if(Math.abs(dx) > 8) return;
+    const dr = e.target.closest(".dayread");
+    if(dr){
+      const alvo = visible().filter(i => fmtDay(i.ts) === dr.dataset.day);
+      const antes = alvo.filter(i => !S.read.has(i.key)).map(i => i.key);
+      antes.forEach(k => S.read.add(k));
+      persist(); render(); buzz(10);
+      UI.toast(`${antes.length} marcadas como lidas`, "Anular", () => {
+        antes.forEach(k => S.read.delete(k)); persist(); render();
+      });
+      return;
+    }
+    const c = e.target.closest(".card"); if(!c) return;
+    if(e.target.closest(".star")){ toggleStar(c.dataset.key); return; }
+    openDetail(c.dataset.key);
+  });
+})();
+
+function toggleStar(key, force){
+  if(S.star[key] && !force) delete S.star[key]; else S.star[key] = 1;
+  dirty.add(key);
+  persist(); persistItems(); render();
+  if(S.star[key]){ UI.toast("Guardado"); agendarEnvio(); }
+}
+
+/* Com uma chave de acesso, os favoritos e as tuas notícias seguem sozinhos
+   para o arquivo do repositório, alguns segundos depois. */
+let envioTimer = null;
+function agendarEnvio(){
+  if(!ADMIN || !S.token || !repoInfo()) return;
+  clearTimeout(envioTimer);
+  envioTimer = setTimeout(async () => {
+    try{
+      const n = await enviarParaRepositorio();
+      if(n) UI.toast(`${n} ${n===1?"notícia enviada":"notícias enviadas"} para o arquivo`);
+    }catch(e){ UI.toast(`Não foi possível enviar para o arquivo: ${e.message}`); }
+  }, 6000);
+}
+
+/* ----------------------------- acrescentar --------------------------- */
+function abrirAcrescentar(){
+  $("#addLink").value = ""; $("#addTitle").value = ""; $("#addPub").value = ""; $("#addNote").value = "";
+  $("#addDate").value = new Date().toISOString().slice(0, 10);
+  openSheet("#shAdd");
+  setTimeout(() => $("#addLink").focus(), 250);
+}
+function guardarMinhas(lista){
+  if(!lista.length) return 0;
+  const antes = new Set(S.items.map(i => i.key));
+  merge(lista);
+  for(const it of lista){
+    const key = it.key || normTitle(it.title) || it.link;
+    S.star[key] = 1; dirty.add(key);
+  }
+  persist(); persistItems(); render(); agendarEnvio();
+  return lista.filter(it => !antes.has(normTitle(it.title) || it.link)).length;
+}
+$("#addClose").addEventListener("click", closeSheet);
+$("#addSave").addEventListener("click", () => {
+  const link = $("#addLink").value.trim(), title = $("#addTitle").value.trim();
+  if(!link && !title){ $("#addLink").focus(); UI.toast("Falta a ligação ou o título"); return; }
+  const d = $("#addDate").value ? Date.parse($("#addDate").value + "T12:00:00") : Date.now();
+  const it = novaMinha({ title, link, ts: d, note: $("#addNote").value, publisher: $("#addPub").value });
+  if(!it){ UI.toast("Não foi possível ler essa ligação"); return; }
+  guardarMinhas([it]);
+  closeSheet(); V.view = "guardados"; render();
+  UI.toast("Notícia guardada");
+});
+$("#addImport").addEventListener("click", () => $("#addFile").click());
+$("#addFile").addEventListener("change", async e => {
+  const f = e.target.files[0]; e.target.value = "";
+  if(!f) return;
+  try{
+    const lista = lerFicheiroNoticias(f.name, await f.text());
+    if(!lista.length){ UI.toast("Não encontrei notícias nesse ficheiro"); return; }
+    const novas = guardarMinhas(lista);
+    closeSheet(); V.view = "guardados"; render();
+    UI.toast(`${lista.length} ${lista.length===1?"notícia importada":"notícias importadas"}${novas < lista.length ? ` (${lista.length-novas} já estavam guardadas)` : ""}`);
+  }catch(err){ UI.toast("Esse ficheiro não se deixa ler"); }
+});
+function markRead(key){
+  const was = S.read.has(key);
+  S.read.add(key); persist(); render();
+  if(!was) UI.toast("Marcada como lida", "Anular", () => {
+    S.read.delete(key); persist(); render();
+  });
+}
+
+/* ---------------------------- puxar para varrer ------------------------ */
+(function pull(){
+  const el = $("#ptr");
+  let y0 = null, d = 0;
+  addEventListener("touchstart", e => {
+    if(scrollY > 4 || S.scanning) return;
+    y0 = e.touches[0].clientY;
+  }, {passive:true});
+  addEventListener("touchmove", e => {
+    if(y0 === null) return;
+    d = Math.max(0, Math.min(90, (e.touches[0].clientY - y0) * .55));
+    el.style.height = d + "px";
+    el.querySelector(".gauge").style.transform = `rotate(${d*4}deg)`;
+  }, {passive:true});
+  addEventListener("touchend", () => {
+    if(y0 === null) return;
+    if(d > 56){ el.classList.add("spin"); el.style.height = "46px"; buzz(14); scan(); }
+    else el.style.height = "0px";
+    y0 = null; d = 0;
+  });
+})();
+
+/* ------------------------------- detalhe ------------------------------- */
+function acharNoticia(key){
+  return S.items.find(i => i.key === key) || (V.arq?.items || []).find(i => i.key === key);
+}
+function openDetail(key){
+  const it = acharNoticia(key); if(!it) return;
+  it.themes = it.themes || []; it.also = it.also || [];
+  V.detail = it;
+  const d = new Date(it.ts);
+  const tags = (it._w||[]).map(t=>`<span class="tag w">◎ ${esc(t)}</span>`).join("")
+    + it.themes.map(t=>`<span class="tag" style="border-color:${THEME_BY_ID[t].color};color:${THEME_BY_ID[t].color}">${THEME_BY_ID[t].label}</span>`).join("")
+    + `<span class="tag" style="border-color:${it.geo==="Externo"?"var(--hot)":"var(--line)"};color:${it.geo==="Externo"?"var(--hot)":"var(--muted)"}">${esc(it.geo)}</span>`;
+  $("#detailBody").innerHTML = `
+    <div class="eyebrow">${esc(it.publisher)} · ${d.toLocaleDateString("pt-PT",{day:"numeric",month:"long"})} · ${fmtTime(d)}</div>
+    <h2 class="d-title">${esc(it.title)}</h2>
+    ${it.dek ? `<p class="d-dek">${esc(it.dek)}</p>` : ""}
+    ${it.note ? `<p class="d-note">${esc(it.note)}</p>` : ""}
+    <div class="d-meta">${it.own ? '<span class="tag w">a tua notícia</span>' : ""}${tags}</div>
+    <div class="d-acts">
+      <a class="btn acc" href="${esc(it.link)}" target="_blank" rel="noopener" data-act="open">Ler no site</a>
+      <button class="btn" data-act="share">Partilhar</button>
+      <button class="btn" data-act="star">${S.star[it.key]?"★ Guardado":"☆ Guardar"}</button>
+      <button class="btn" data-act="read">${S.read.has(it.key)?"Marcar por ler":"Marcar lida"}</button>
+    </div>
+    ${it.also.length ? `<div class="d-also"><span class="eyebrow">Também noticiado por</span>
+      <p>${esc(it.also.join(" · "))}</p></div>` : ""}
+    ${(it.hits||[]).length ? `<div class="d-also"><span class="eyebrow">Assinalada por</span>
+      <p>${esc(it.hits.join(" · "))}${BUILD === "tecnica" ? ` · pontuação ${it.score}` : ""}</p></div>` : ""}`;
+  openSheet("#shDetail");
+}
+$("#detailBody").addEventListener("click", e => {
+  const b = e.target.closest("[data-act]"); if(!b) return;
+  const it = V.detail; if(!it) return;
+  const a = b.dataset.act;
+  if(a === "open"){ S.read.add(it.key); persist(); closeSheet(); render(); return; }
+  if(a === "share"){
+    if(navigator.share) navigator.share({title:it.title, url:it.link}).catch(()=>{});
+    else { navigator.clipboard?.writeText(it.link); UI.toast("Ligação copiada"); }
+    return;
+  }
+  if(a === "star"){
+    if(!S.items.includes(it)){ S.items.push(it); S.items.sort((x,y) => y.ts - x.ts); }
+    toggleStar(it.key); b.textContent = S.star[it.key]?"★ Guardado":"☆ Guardar"; return;
+  }
+  if(a === "read"){
+    S.read.has(it.key) ? S.read.delete(it.key) : S.read.add(it.key);
+    persist(); render(); b.textContent = S.read.has(it.key)?"Marcar por ler":"Marcar lida";
+  }
+});
+
+/* ------------------------------- folhas -------------------------------- */
+let openId = null;
+function openSheet(id){
+  openId = id;
+  $(id).classList.add("on"); $(id).setAttribute("aria-hidden","false");
+  $("#scrim").classList.add("on");
+}
+function closeSheet(){
+  if(!openId) return;
+  $(openId).classList.remove("on"); $(openId).setAttribute("aria-hidden","true");
+  $("#scrim").classList.remove("on"); openId = null;
+}
+$("#scrim").addEventListener("click", closeSheet);
+$("#setClose").addEventListener("click", closeSheet);
+addEventListener("keydown", e => { if(e.key === "Escape"){ closeSheet(); closeSearch(); if($("#arquivo").classList.contains("on")) fecharArquivo(); } });
+
+document.querySelectorAll("[data-drag]").forEach(h => {
+  let y0 = null;
+  const sheet = h.closest(".sheet");
+  h.addEventListener("pointerdown", e => { y0 = e.clientY; h.setPointerCapture(e.pointerId);
+    sheet.style.transition = "none"; });
+  h.addEventListener("pointermove", e => {
+    if(y0 === null) return;
+    const d = Math.max(0, e.clientY - y0);
+    sheet.style.transform = `translateY(${d}px)`;
+  });
+  const up = e => {
+    if(y0 === null) return;
+    const d = Math.max(0, (e.clientY||0) - y0);
+    sheet.style.transition = ""; sheet.style.transform = "";
+    y0 = null;
+    if(d > 90) closeSheet();
+  };
+  h.addEventListener("pointerup", up);
+  h.addEventListener("pointercancel", up);
+});
+
+/* ------------------------------ navegação ------------------------------ */
+document.querySelector("nav").addEventListener("click", e => {
+  const b = e.target.closest("[data-view]"); if(!b) return;
+  buzz(6);
+  if(b.dataset.view === "def"){ openSet(V.setTab); return; }
+  if(b.dataset.view === "arquivo"){ abrirArquivo(); return; }
+  V.view = b.dataset.view;
+  scrollTo({top:0, behavior:"smooth"});
+  render();
+});
+function openSet(tab){
+  V.setTab = tab || V.setTab;
+  document.querySelectorAll("#setTabs button").forEach(b =>
+    b.classList.toggle("on", b.dataset.tab === V.setTab));
+  renderSet();
+  openSheet("#shSet");
+}
+$("#setTabs").addEventListener("click", e => {
+  const b = e.target.closest("[data-tab]"); if(!b) return;
+  V.setTab = b.dataset.tab;
+  document.querySelectorAll("#setTabs button").forEach(x => x.classList.toggle("on", x === b));
+  $("#setBody").scrollTop = 0;
+  renderSet();
+});
+
+/* ------------------------------- arquivo --------------------------------
+   Tudo o que já passou pela Sentinela neste aparelho, e — com um arquivo
+   ligado — todos os meses recolhidos no repositório, mesmo os que nunca
+   chegaste a ver aqui. Escolher um mês trá-lo para o aparelho.            */
+V.arq = { mes: null, q: "", items: [], aTrazer: false };
+const nomeMes = m => new Date(m + "-15T12:00:00").toLocaleDateString("pt-PT", { month: "short", year: "numeric" });
+const limitesMes = m => { const a = Date.parse(m + "-01T00:00:00Z"); const d = new Date(a); d.setUTCMonth(d.getUTCMonth() + 1); return [a, +d]; };
+
+async function mesesDisponiveis(){
+  let loc = {};
+  if(DB.ok) loc = await DB.months().catch(() => ({}));
+  else for(const i of S.items){ const m = new Date(i.ts).toISOString().slice(0,7); loc[m] = (loc[m]||0) + 1; }
+  const rem = Object.fromEntries((ARQ?.idx?.meses || []).map(m => [m.mes, m.n]));
+  return [...new Set([...Object.keys(loc), ...Object.keys(rem)])].sort().reverse()
+    .map(m => ({ mes: m, local: loc[m] || 0, remoto: rem[m] || 0 }));
+}
+
+function preparar(lista){
+  return lista.map(x => {
+    if(x.score === undefined || !x.zones){
+      const a = analyse(x);
+      Object.assign(x, { score:a.score, themes:a.themes, geo:a.geo, zones:a.zones, hits:a.hits });
+    }
+    x.srcs = x.srcs || [x.srcId]; x.also = x.also || []; x._w = watchHits(x);
+    return x;
+  });
+}
+function passaNoArquivo(x){
+  if(x.own || S.star[x.key]) return true;
+  if(x.score < S.minScore) return false;
+  return (x.zones || ["pt"]).some(z => S.zones[z]);
+}
+
+async function abrirArquivo(){
+  $("#arquivo").classList.add("on");
+  document.querySelectorAll("nav button").forEach(b => b.classList.toggle("on", b.dataset.view === "arquivo"));
+  await renderArquivo();
+}
+function fecharArquivo(){
+  $("#arquivo").classList.remove("on");
+  V.arq.items = [];
+  render();
+}
+
+async function renderArquivo(){
+  const meses = await mesesDisponiveis();
+  const q = deacc(V.arq.q.trim());
+  $("#aMeses").innerHTML =
+    `<button class="pill ${!V.arq.mes?"acc on":""}" data-mes="">Recentes</button>` +
+    meses.map(m => `<button class="pill ${V.arq.mes===m.mes?"acc on":""}" data-mes="${m.mes}">${esc(nomeMes(m.mes))}
+      <span class="n">${Math.max(m.local, m.remoto)}</span></button>`).join("");
+
+  const body = $("#aBody");
+  let lista = [], cab = "";
+  if(V.arq.mes){
+    const info = meses.find(m => m.mes === V.arq.mes) || { local: 0, remoto: 0 };
+    const [a, b] = limitesMes(V.arq.mes);
+    lista = DB.ok ? await DB.range(a, b) : S.items.filter(i => i.ts >= a && i.ts < b);
+    if(ARQ && info.remoto > lista.length && !V.arq.aTrazer){
+      V.arq.aTrazer = true;
+      body.innerHTML = `<div class="empty"><h4>A trazer ${esc(nomeMes(V.arq.mes))} do arquivo</h4><p>${info.remoto} notícias. Ficam neste aparelho a partir de agora.</p></div>`;
+      try{ const vindas = await trazerMes(V.arq.mes); if(!DB.ok) lista = vindas; else lista = await DB.range(a, b); }
+      catch{ UI.toast("Não foi possível trazer esse mês do arquivo"); }
+      V.arq.aTrazer = false;
+    }
+    cab = `<b>${esc(nomeMes(V.arq.mes))}</b><span>${lista.length} ${lista.length===1?"notícia guardada":"notícias guardadas"}</span>`;
+  } else if(q){
+    lista = DB.ok ? await DB.all() : S.items;
+    cab = `<b>Em todo o arquivo</b>`;
+  } else {
+    lista = S.items;
+    cab = `<b>Recentes</b><span>${DB.ok ? `${await DB.count()} notícias neste aparelho, sem prazo` : `${S.items.length} notícias neste aparelho`}</span>`;
+  }
+  lista = preparar(lista).filter(passaNoArquivo);
+  if(q) lista = lista.filter(x => deacc(`${x.title} ${x.dek} ${x.publisher} ${x.note || ""}`).includes(q));
+  lista.sort((x, y) => y.ts - x.ts);
+  V.arq.items = lista;
+
+  if(!lista.length){
+    body.innerHTML = `<div class="arq-head">${cab}</div><div class="empty"><h4>${q ? "Nada encontrado" : "Ainda vazio"}</h4>
+      <p>${q ? `Nenhuma notícia guardada menciona “${esc(V.arq.q)}”.`
+             : "Tudo o que a Sentinela recolhe fica aqui, sem prazo."}
+      ${ARQ ? "" : "<br><br>Com um arquivo ligado em Definições → Dados, vês também tudo o que foi recolhido enquanto não estavas a usar este aparelho."}</p></div>`;
+    return;
+  }
+  const max = V.arq.max || 150;
+  body.innerHTML = `<div class="arq-head">${cab}${q ? `<span>${lista.length} resultados</span>` : ""}</div>` +
+    lista.slice(0, max).map(cardHtml).join("") +
+    (lista.length > max ? `<button class="btn wide" id="aMais" style="margin:6px 0 20px">Mostrar mais ${Math.min(150, lista.length - max)}</button>` : "");
+}
+$("#aClose").addEventListener("click", fecharArquivo);
+$("#aMeses").addEventListener("click", e => {
+  const b = e.target.closest("[data-mes]"); if(!b) return;
+  V.arq.mes = b.dataset.mes || null; V.arq.max = 150; buzz(6); renderArquivo();
+});
+let aqTimer = null;
+$("#aq").addEventListener("input", e => {
+  clearTimeout(aqTimer);
+  aqTimer = setTimeout(() => { V.arq.q = e.target.value; V.arq.max = 150; renderArquivo(); }, 220);
+});
+$("#aBody").addEventListener("click", e => {
+  if(e.target.id === "aMais"){ V.arq.max = (V.arq.max || 150) + 150; renderArquivo(); return; }
+  const c = e.target.closest(".card"); if(!c) return;
+  const it = acharNoticia(c.dataset.key);
+  if(e.target.closest(".star") && it){
+    if(!S.items.includes(it)) S.items.push(it);
+    toggleStar(it.key); renderArquivo(); return;
+  }
+  openDetail(c.dataset.key);
+});
+
+/* ------------------------------ pesquisa ------------------------------- */
+function openSearch(term){
+  $("#search").classList.add("on");
+  if(term !== undefined){ $("#q").value = term; S.filters.q = term; }
+  renderSearch();
+  setTimeout(()=>$("#q").focus(), 60);
+}
+function closeSearch(){ $("#search").classList.remove("on"); }
+$("#btnSearch").addEventListener("click", () => openSearch());
+$("#qClose").addEventListener("click", () => { closeSearch(); render(); });
+$("#q").addEventListener("input", e => { S.filters.q = e.target.value; renderSearch(); });
+function renderSearch(){
+  const list = visible().slice(0, 40);
+  const q = S.filters.q.trim();
+  const body = $("#qBody");
+  if(!q){
+    const top = trending(filtered()).slice(0,14);
+    body.innerHTML = `<div class="grp"><span class="eyebrow">Sugestões do fluxo</span><span class="ln"></span></div>
+      <div class="rail trend" style="flex-wrap:wrap;overflow:visible;padding-left:0;margin:0">
+      ${top.map(e=>`<button class="pill" data-term="${esc(e.label)}"><b>${esc(e.label)}</b><span class="n">${e.n}</span></button>`).join("")}</div>`;
+    return;
+  }
+  body.innerHTML = list.length
+    ? `<div class="grp"><span class="eyebrow">${list.length} resultados</span><span class="ln"></span></div>` +
+      list.map(cardHtml).join("")
+    : `<div class="empty"><h4>Sem resultados</h4><p>Nenhuma notícia recolhida menciona “${esc(q)}”. Experimenta um termo mais curto.</p></div>`;
+}
+$("#qBody").addEventListener("click", e => {
+  const t = e.target.closest("[data-term]");
+  if(t){ $("#q").value = t.dataset.term; S.filters.q = t.dataset.term; renderSearch(); return; }
+  const c = e.target.closest(".card");
+  if(c){ closeSearch(); openDetail(c.dataset.key); render(); }
+});
+
+/* ============================= definições ============================== */
+function renderSet(){
+  const b = $("#setBody");
+  if(V.setTab === "fontes")  b.innerHTML = paneSources();
+  if(V.setTab === "temas")   b.innerHTML = paneTerms();
+  if(V.setTab === "rede")    b.innerHTML = paneNet();
+  if(V.setTab === "dados")   b.innerHTML = paneData();
+}
+
+/* Traduz o que aconteceu a uma fonte para uma frase que se entenda,
+   sem códigos, nomes de serviços nem endereços.                        */
+function motivoAmigavel(st){
+  if(!st) return "";
+  if(st.state === "empty") return "Respondeu, mas não trouxe nada.";
+  if(st.state !== "bad") return "";
+  const d = (st.detail || st.err || "").toLowerCase();
+  if(/não respondeu a tempo|tempo esgotado|limite de ritmo|abrandar|sem resposta/.test(d))
+    return "Demorou de mais desta vez. Costuma resolver-se na recolha seguinte.";
+  if(/não existe|404|410/.test(d))
+    return st.server ? "Mudou de morada. A recolha automática tenta outras moradas e, se falhar, procura-a por pesquisa."
+                     : "Mudou de morada. Toca em Verificar para procurar a nova.";
+  if(/recusou|400|403/.test(d)) return "Recusou o pedido.";
+  if(/não é um feed|página, não/.test(d))
+    return "Deixou de publicar num formato que se possa ler automaticamente.";
+  if(/rede|acesso/.test(d)) return "Sem ligação a esta fonte neste momento.";
+  return "Não foi possível ler esta fonte.";
+}
+
+function descricaoFonte(x){
+  if(S.advanced) return x.type === "gnews" ? x.q : x.url;
+  if(x.type === "gnews"){
+    const m = /^site:(\S+)/.exec(x.q);
+    return m ? "Só as notícias de " + m[1] : "Pesquisa por tema em toda a imprensa";
+  }
+  try{ return new URL(x.url).hostname.replace(/^www\./,""); }
+  catch{ return "Publicação lida directamente"; }
+}
+
+function paneSources(){
+  const groups = [...new Set(S.sources.map(s=>s.group))];
+  const cab = ARQ
+    ? `<div class="note" style="background:var(--surface2);border-color:var(--line)">As fontes de origem são lidas pela recolha automática, de hora a hora${ARQ.at ? ` — a última foi há ${ago(ARQ.at)}` : ""}. Aqui escolhes quais queres <b>ver</b>; desligar uma não apaga nada do arquivo.</div>`
+    : "";
+  const rows = g => S.sources.filter(s=>s.group===g).map(s=>{
+    const st = S.status[s.id];
+    const stTxt = !st ? `<span class="st wait">—</span>`
+      : st.state==="ok" ? `<span class="st ok">${st.note==="em cache" ? "actualizada" : st.server ? `${st.n} lidas` : st.n+" notícias"}</span>`
+      : st.state==="bad" ? `<span class="st bad">não respondeu</span>`
+      : st.state==="empty" ? `<span class="st wait">sem novidades</span>`
+      : `<span class="st wait">…</span>`;
+
+    const frase = motivoAmigavel(st);
+    const nota = st?.note && st.note !== "em cache"
+      ? (/corrigido/.test(st.note) ? "Morada corrigida automaticamente."
+        : /pesquisa/.test(st.note) ? "Sem publicação directa — passou a ser procurada por pesquisa." : "")
+      : "";
+    const diag = frase
+      ? `<span class="diag ${st.state==="bad" ? "bad" : ""}">${esc(frase)}</span>`
+      : nota ? `<span class="diag ok">${esc(nota)}</span>` : "";
+    const tecnico = S.advanced && st?.detail
+      ? `<span class="diag" style="color:var(--dim)">${esc(st.detail)}</span>` : "";
+
+    const acoes = (st && !st.server && (st.state==="bad" || st.state==="empty"))
+      ? `<span class="srowacts">
+           <button class="mini-btn" data-probe="${esc(s.id)}">Verificar</button>
+           ${s.type==="rss" ? `<button class="mini-btn" data-tosearch="${esc(s.id)}">Procurar por pesquisa</button>` : ""}
+         </span>` : "";
+
+    return `<div class="srow">
+      <span class="sw ${s.enabled?"on":""}" data-src="${esc(s.id)}" role="switch" aria-checked="${!!s.enabled}"></span>
+      <span class="txt"><b>${esc(s.name)}</b><small>${esc(descricaoFonte(s))}</small>${diag}${tecnico}${acoes}</span>
+      ${stTxt}<button class="x" data-del="${esc(s.id)}" aria-label="Remover">✕</button></div>`;
+  }).join("");
+
+  return cab + (ARQ ? "" : `<p class="hint" style="margin-bottom:10px">Algumas publicações vêm desligadas por não se saber se ainda se deixam ler automaticamente. Liga-as e toca em <b>Verificar</b>: se houver maneira de as ler, fica guardada.</p>`) + `
+    <p class="hint" style="margin-bottom:16px">As <b>pesquisas</b> vasculham toda a imprensa portuguesa, incluindo a regional. As restantes são publicações lidas directamente. Depois de recolher, cada linha mostra o que trouxe.</p>
+    ${groups.map(g=>`<div class="grp"><span class="eyebrow">${esc(g)}</span><span class="ln"></span></div>${rows(g)}`).join("")}
+    <div class="grp"><span class="eyebrow">Manutenção</span><span class="ln"></span></div>
+    <div class="stack">
+      <button class="btn acc wide" id="essencial">Repor o conjunto recomendado</button>
+      <button class="btn wide" id="testAll">Testar todas as fontes</button>
+      <div class="two">
+        <button class="btn" id="dropDead">Desligar as que não respondem</button>
+        <button class="btn" id="repairAll">Tentar reparar</button>
+      </div>
+    </div>
+    <div class="grp"><span class="eyebrow">Acrescentar fonte</span><span class="ln"></span></div>
+    <div class="fld"><input class="inp" id="nsName" placeholder="Nome, como o queres ver na lista"></div>
+    <div class="fld two">
+      <select class="inp" id="nsType"><option value="gnews">Procurar por palavras</option><option value="rss">Endereço de uma publicação</option></select>
+      <select class="inp" id="nsGroup">${["Pesquisas","Referência","Especializada","Generalista","Oficial","Europa","Outras"].map(x=>`<option>${x}</option>`).join("")}</select>
+    </div>
+    <div class="fld"><input class="inp" id="nsUrl" placeholder="Palavras a procurar, ou o endereço da publicação"></div>
+    <button class="btn acc wide" id="nsAdd">Acrescentar</button>`;
+}
+
+function zoneRows(group){
+  return ZONES.filter(z=>z.group===group).map(z=>{
+    const on = z.fixed || S.zones[z.id];
+    return `<div class="srow">
+      <span class="sw ${on?"on":""}${z.fixed?" fixed":""}" ${z.fixed?"":`data-zone="${z.id}"`}
+            role="switch" aria-checked="${!!on}"></span>
+      <span class="txt"><b>${esc(z.label)}</b>${z.fixed?'<small>sempre incluído</small>':""}</span>
+    </div>`;
+  }).join("");
+}
+
+function paneTerms(){
+  const nAg = ZONES.filter(z=>z.group==="ag" && S.zones[z.id]).length;
+  return `<div class="grp"><span class="eyebrow">Âmbito geográfico</span><span class="ln"></span></div>
+    <p class="hint" style="margin-bottom:10px">Uma notícia entra se mencionar pelo menos um dos âmbitos activos. Uma peça sobre o Mercosul, que fala do Brasil e da UE, entra pela Europa mesmo com o Brasil desligado.</p>
+    ${zoneRows("base")}
+    <div class="grp"><span class="eyebrow">Potências agrícolas${nAg?` · ${nAg} activas`:""}</span><span class="ln"></span></div>
+    ${zoneRows("ag")}
+    <div class="grp"><span class="eyebrow">Tudo o resto</span><span class="ln"></span></div>
+    ${zoneRows("other")}
+    <div class="grp"><span class="eyebrow">Exigência do filtro</span><span class="ln"></span></div>
+    <p class="hint" style="margin-bottom:10px">A Sentinela lê cada título e decide se é mesmo do sector. Aqui escolhes quanto duvida antes de deixar passar.</p>
+    <div class="fld">
+      <select class="inp" id="minScore">
+        <option value="1" ${S.minScore<=1?"selected":""}>Deixar passar tudo o que roce o tema</option>
+        <option value="3" ${S.minScore>1&&S.minScore<5?"selected":""}>Equilibrado — recomendado</option>
+        <option value="6" ${S.minScore>=5?"selected":""}>Só o que é claramente do sector</option>
+      </select>
+    </div>
+
+    <div class="grp"><span class="eyebrow">Palavras que interessam</span><span class="ln"></span></div>
+    <p class="hint" style="margin-bottom:8px">Assuntos que a Sentinela ainda não reconhece como sendo do sector. Uma por linha.</p>
+    <textarea class="inp" id="extraCore" placeholder="pinha&#10;kiwi&#10;baldios">${esc(S.extraCore.join("\n"))}</textarea>
+
+    <div class="grp"><span class="eyebrow">Palavras a ignorar</span><span class="ln"></span></div>
+    <p class="hint" style="margin-bottom:8px">Se alguma coisa continuar a aparecer sem ter nada a ver, escreve-a aqui.</p>
+    <textarea class="inp" id="extraNoise" placeholder="uma por linha">${esc(S.extraNoise.join("\n"))}</textarea>
+
+    <div style="margin-top:14px"><button class="btn acc wide" id="termsSave">Guardar</button></div>`;
+}
+
+function paneNet(){
+  const tec = S.advanced ? `
+    <div class="grp"><span class="eyebrow">Avançado</span><span class="ln"></span></div>
+    <p class="hint" style="margin-bottom:10px">Um browser não consegue ler publicações de outros sítios sem ajuda. A Sentinela passa por serviços intermediários, experimentados por ordem até um responder. <b>{URL}</b> é substituído pela morada da publicação.</p>
+    <textarea class="inp" id="proxies" style="min-height:130px">${esc(S.proxies.join("\n"))}</textarea>
+    <div class="two" style="margin-top:10px">
+      <button class="btn" id="pxSave">Guardar</button>
+      <button class="btn" id="pxReset">Repor originais</button>
+    </div>` : "";
+
+  return `<p class="hint" style="margin-bottom:16px">A Sentinela vai buscar as notícias sozinha. Aqui decides com que frequência e até que distância no tempo.</p>
+    <div class="fld"><label for="autoMin">Procurar novidades</label>
+      <select class="inp" id="autoMin">${[0,15,30,60,180].map(v=>`<option value="${v}" ${S.autoMin===v?"selected":""}>${v?"de "+v+" em "+v+" minutos":"só quando eu pedir"}</option>`).join("")}</select></div>
+    <div class="fld"><label for="gDays">Ir buscar notícias dos últimos</label>
+      <select class="inp" id="gDays">${[3,7,14,21,30].map(v=>`<option value="${v}" ${S.gnewsDays===v?"selected":""}>${v} dias</option>`).join("")}</select></div>
+    <div class="fld"><label for="cacheMin">Não repetir a mesma fonte antes de</label>
+      <select class="inp" id="cacheMin">${[0,5,15,30,60].map(v=>`<option value="${v}" ${S.cacheMin===v?"selected":""}>${v?v+" minutos":"sem espera"}</option>`).join("")}</select></div>
+    <button class="btn acc wide" id="netSave">Guardar</button>
+    <p class="hint" style="margin-top:12px">Menos fontes activas e mais tempo entre recolhas tornam a Sentinela mais fiável: os serviços gratuitos que a ligam à internet têm limites.</p>
+    ${tec}`;
+}
+
+function estadoArquivo(){
+  const r = repoInfo();
+  if(!ADMIN){
+    if(ARQ){
+      const n = ARQ.idx.total || 0, m = (ARQ.idx.meses || []).length;
+      return `<p class="hint"><b style="color:var(--accent)">Ligado ao arquivo da Sentinela.</b>
+        As notícias são recolhidas de hora a hora — a última vez foi há ${ago(ARQ.at)}.
+        ${n} notícias guardadas em ${m} ${m===1?"mês":"meses"}, que podes percorrer no separador Arquivo.</p>`;
+    }
+    return `<p class="hint">As notícias estão a ser recolhidas a partir deste aparelho${r ? ", porque o arquivo não respondeu" : ""}.</p>`;
+  }
+  if(ARQ){
+    const n = ARQ.idx.total || 0, m = (ARQ.idx.meses || []).length;
+    const ex = (ARQ.idx.execucoes || [])[0];
+    return `<p class="hint"><b style="color:var(--accent)">Ligado</b>${r ? ` a <b>${esc(r.owner)}/${esc(r.name)}</b>` : ""}.
+      Última recolha há ${ago(ARQ.at)}${ex ? `, com ${ex.fontesOk} de ${ex.fontes} fontes a responder` : ""}.
+      ${n} notícias guardadas em ${m} ${m===1?"mês":"meses"}.
+      ${S.advanced ? `<br><span style="font-family:var(--data);font-size:10.5px;word-break:break-all">${esc(ARQ.base)}</span>` : ""}</p>`;
+  }
+  if(r) return `<p class="hint"><b style="color:var(--hot)">Sem resposta</b> de <b>${esc(r.owner)}/${esc(r.name)}</b>.
+    Confirma o nome, que o repositório é público e que a recolha já correu pelo menos uma vez.</p>`;
+  return `<p class="hint">Sem arquivo. As notícias ficam só neste aparelho e são recolhidas daqui, através de serviços gratuitos que às vezes falham.
+    Com um arquivo no GitHub, a recolha corre lá de hora a hora e guarda tudo para sempre — e vês o mesmo em qualquer aparelho.</p>`;
+}
+
+function paneData(){
+  const ok  = Object.values(S.status).filter(x=>x.state==="ok").length;
+  const bad = Object.values(S.status).filter(x=>x.state!=="ok").length;
+  const nMinhas = S.items.filter(i => i.own).length, nFav = Object.keys(S.star).length;
+  const porEnviar = S.items.filter(i => (i.own || S.star[i.key]) && !S.sent.has(i.key)).length;
+  const nomeRepo = esc(S.repo || "");
+  const sugestao = esc(REPO_CONFIG || REPO_ORIGEM || "o-teu-nome/sentinela");
+  if(!ADMIN) return `<div class="grp"><span class="eyebrow">Arquivo</span><span class="ln"></span></div>
+    ${estadoArquivo()}
+    <div class="grp"><span class="eyebrow">As tuas notícias</span><span class="ln"></span></div>
+    <p class="hint">${nMinhas} acrescentadas por ti · ${nFav} nos favoritos. Ficam neste aparelho, sem prazo, e só tu as vês.</p>
+    <div class="stack" style="margin-top:8px">
+      <button class="btn acc wide" id="minhasAdd">Acrescentar uma notícia</button>
+      <div class="two">
+        <button class="btn" id="minhasImp">Importar ficheiro</button>
+        <button class="btn" id="minhasExp">Cópia de segurança</button>
+      </div>
+    </div>
+    <p class="hint" style="margin-top:8px">A cópia de segurança leva os teus favoritos e notícias para outro aparelho: importa-a lá.</p>
+` + paneDataResto(ok, bad);
+  return `<div class="grp"><span class="eyebrow">Arquivo permanente</span><span class="ln"></span></div>
+    ${estadoArquivo()}
+    <div class="fld" style="margin-top:10px"><label for="arqRepo">Repositório${REPO_CONFIG || REPO_ORIGEM ? ` <span style="color:var(--dim)">— em branco usa ${sugestao}</span>` : ""}</label>
+      <input class="inp" id="arqRepo" placeholder="${sugestao}" value="${nomeRepo}" autocapitalize="off" autocomplete="off" spellcheck="false"></div>
+    <div class="fld"><label for="arqToken">Chave de acesso <span style="color:var(--dim)">— opcional, para enviares as tuas notícias</span></label>
+      <input class="inp" id="arqToken" type="password" placeholder="${S.token ? "guardada neste aparelho" : "github_pat_…"}" autocomplete="off" spellcheck="false"></div>
+    <div class="two">
+      <button class="btn acc" id="arqLigar">Guardar e ligar</button>
+      <button class="btn" id="arqEnviar" ${S.token && repoInfo() ? "" : "disabled"}>Enviar agora${porEnviar ? ` (${porEnviar})` : ""}</button>
+    </div>
+    <p class="hint" style="margin-top:8px">A chave fica só neste aparelho. Cria-a no GitHub em <b>Settings → Developer settings → Fine-grained tokens</b>, com acesso apenas a este repositório e permissão <b>Contents: Read and write</b>.</p>
+
+    <div class="grp"><span class="eyebrow">As tuas notícias</span><span class="ln"></span></div>
+    <p class="hint">${nMinhas} acrescentadas por ti · ${nFav} nos favoritos. Nenhuma expira.</p>
+    <div class="stack" style="margin-top:8px">
+      <button class="btn acc wide" id="minhasAdd">Acrescentar uma notícia</button>
+      <div class="two">
+        <button class="btn" id="minhasImp">Importar ficheiro</button>
+        <button class="btn" id="minhasExp">Exportar as minhas</button>
+      </div>
+    </div>
+
+    <p class="hint">As tuas notícias enviadas vão para <b>data/minhas.json</b>: não aparecem aos outros utilizadores, mas o ficheiro é público no repositório.</p>
+` + paneDataResto(ok, bad);
+}
+
+function paneDataResto(ok, bad){
+  return `
+    <div class="grp"><span class="eyebrow">Guardar neste aparelho</span><span class="ln"></span></div>
+    <div class="fld"><select class="inp" id="keepDays">
+      ${[[0,"Para sempre"],[365,"Durante um ano"],[180,"Durante seis meses"],[90,"Durante três meses"]]
+        .map(([v,t]) => `<option value="${v}" ${S.keepDays===v?"selected":""}>${t}</option>`).join("")}
+    </select></div>
+    <p class="hint">${DB.ok ? "" : "<b>Atenção:</b> este navegador não deixa guardar muito; só os favoritos e as tuas notícias ficam para sempre. "}Os favoritos e as tuas notícias ficam sempre, seja qual for o prazo.</p>
+
+    <div class="grp"><span class="eyebrow">Como está</span><span class="ln"></span></div>
+    <p class="hint">${S.items.length} notícias guardadas · ${S.read.size} lidas · ${Object.keys(S.star).length} nos favoritos.<br>
+    Na última recolha, ${ok} ${ok===1?"fonte trouxe":"fontes trouxeram"} novidades${bad?` e ${bad} não responderam`:""}.
+    ${Store.available ? "" : "<br><b>Atenção:</b> as tuas escolhas não ficam guardadas ao fechar. Abre a Sentinela a partir de um endereço na internet para resolver."}</p>
+
+    <div class="grp"><span class="eyebrow">Instalar</span><span class="ln"></span></div>
+    ${blocoInstalar()}
+
+    <div class="grp"><span class="eyebrow">Aspecto</span><span class="ln"></span></div>
+    <div class="two"><button class="btn" id="thDark">Escuro</button><button class="btn" id="thLight">Claro</button></div>
+
+    <div class="grp"><span class="eyebrow">Levar daqui</span><span class="ln"></span></div>
+    <div class="stack">
+      <button class="btn wide" id="expMd">Resumo das notícias</button>
+      <button class="btn wide" id="expCsv">Tabela para folha de cálculo</button>
+      <button class="btn wide" id="expTudo">Tudo o que está guardado</button>
+      <button class="btn wide" id="expCfg">Guardar as minhas escolhas</button>
+    </div>
+
+    <div class="grp"><span class="eyebrow">Trazer para aqui</span><span class="ln"></span></div>
+    <textarea class="inp" id="impCfg" placeholder="cola aqui as escolhas que guardaste"></textarea>
+    <div style="margin-top:8px"><button class="btn wide" id="impBtn">Restaurar as minhas escolhas</button></div>
+
+    <div class="grp"><span class="eyebrow">Recomeçar</span><span class="ln"></span></div>
+    <div class="stack">
+      <button class="btn wide" id="clrRead">Esquecer o que já li</button>
+      <button class="btn wide" id="clrItems">Apagar as notícias guardadas (mantém favoritos e as tuas)</button>
+      <button class="btn wide" id="clrAll">Repor tudo de origem</button>
+    </div>
+
+    ${BUILD === "tecnica" ? `
+      <div class="grp"><span class="eyebrow">Modo avançado</span><span class="ln"></span></div>
+      <div class="srow" style="border:0;padding-top:4px">
+        <span class="sw ${S.advanced?"on":""}" data-adv role="switch" aria-checked="${!!S.advanced}"></span>
+        <span class="txt"><b>Mostrar detalhes técnicos</b>
+          <small>Moradas completas, mensagens de erro na íntegra e serviços de ligação.</small></span>
+      </div>
+      <div style="margin-top:10px"><button class="btn wide" id="copyDiag">Copiar relatório técnico</button></div>` : ""}`;
+}
+
+/* ------------------------- acções das definições ----------------------- */
+$("#setBody").addEventListener("change", e => {
+  if(e.target.id === "keepDays"){
+    S.keepDays = +e.target.value || 0; persist();
+    if(S.keepDays && DB.ok) DB.prune(Date.now() - S.keepDays * 864e5).then(n => n && UI.toast(`${n} notícias antigas removidas deste aparelho`));
+  }
+});
+$("#setBody").addEventListener("click", e => {
+  const t = e.target;
+
+  const aw = t.closest(".sw[data-adv]");
+  if(aw){
+    S.advanced = !S.advanced;
+    persist(); renderSet(); buzz(6);
+    return;
+  }
+
+  const zw = t.closest(".sw[data-zone]");
+  if(zw){
+    const id = zw.dataset.zone;
+    S.zones[id] = !S.zones[id];
+    zw.classList.toggle("on", S.zones[id]);
+    zw.setAttribute("aria-checked", !!S.zones[id]);
+    persist(); render(); buzz(6);
+    return;
+  }
+
+  const sw = t.closest(".sw[data-src]");
+  if(sw){
+    const s = S.sources.find(x=>x.id===sw.dataset.src);
+    if(s){ s.enabled = !s.enabled; sw.classList.toggle("on", s.enabled);
+      sw.setAttribute("aria-checked", !!s.enabled); persist(); buzz(6); }
+    return;
+  }
+  const pb = t.closest("[data-probe]");
+  if(pb){
+    const src = S.sources.find(x=>x.id===pb.dataset.probe);
+    if(!src) return;
+    pb.textContent = "A testar…"; pb.disabled = true;
+    probeSource(src).then(linhas => {
+      const cx = pb.closest(".srowacts");
+      const box = document.createElement("div");
+      box.className = "probe";
+      const nome = l => l.etiqueta === "endereço actual" ? "Morada actual"
+                 : l.etiqueta === "variante" ? "Outra morada possível"
+                 : l.etiqueta === "pesquisa por sítio" ? "Procura por pesquisa" : "Pesquisa";
+      const frase = l => l.ok ? `trouxe ${l.n} notícias`
+                   : /não existe|404|410/.test(l.msg) ? "não existe"
+                   : /tempo|limite|abrandar/.test(l.msg) ? "demorou de mais"
+                   : /não é um feed|página/.test(l.msg) ? "não está em formato legível"
+                   : "não respondeu";
+      box.innerHTML = linhas.map(l =>
+        `<div><span class="${l.ok?"y":"n"}">${l.ok?"✔":"✘"}</span> ${esc(nome(l))} — ${esc(frase(l))}
+         ${S.advanced ? `<br><span style="font-size:10.5px;word-break:break-all;color:var(--dim)">${esc(l.url.slice(0,90))}</span>` : ""}</div>`).join("");
+      const bom = linhas.find(l=>l.ok);
+      if(bom && src.type==="rss" && bom.url !== src.url && !bom.url.includes("news.google")){
+        src.url = bom.url; src.noFeed = false; persist();
+        box.innerHTML += `<div class="y">Morada corrigida. Passa a funcionar na próxima recolha.</div>`;
+      } else if(!bom){
+        box.innerHTML += `<div style="color:var(--muted)">Nada resultou desta vez. Tenta mais tarde, ou toca em “Procurar por pesquisa”.</div>`;
+      }
+      cx.after(box);
+      pb.textContent = "Verificar"; pb.disabled = false;
+    });
+    return;
+  }
+  const ts = t.closest("[data-tosearch]");
+  if(ts){
+    const src = S.sources.find(x=>x.id===ts.dataset.tosearch);
+    if(!src) return;
+    const host = src.url ? new URL(src.url).hostname.replace(/^www\./,"") : "";
+    src.type = "gnews"; src.q = `site:${host}`; delete src.url; src.noFeed = false;
+    persist(); renderSet(); UI.toast(`${src.name} passa a ser procurada por pesquisa`);
+    return;
+  }
+
+  const del = t.closest("[data-del]");
+  if(del){ S.sources = S.sources.filter(x=>x.id!==del.dataset.del); persist(); renderSet(); return; }
+
+  const id = t.id;
+  if(id === "essencial"){
+    const rec = new Map(DEFAULT_SOURCES.map(d=>[d.id, d.enabled !== false]));
+    for(const x of S.sources){
+      if(!rec.has(x.id)) continue;              // as fontes que acrescentaste ficam como estão
+      x.enabled = rec.get(x.id);
+    }
+    persist(); renderSet();
+    UI.toast(`${S.sources.filter(x=>x.enabled).length} fontes activas`);
+    return;
+  }
+  if(id === "testAll"){ t.textContent = "A testar…"; testAll(); return; }
+  if(id === "copyDiag"){
+    const lines = S.sources.map(x=>{
+      const st = S.status[x.id];
+      const addr = x.type==="gnews" ? "pesquisa: "+x.q : x.url;
+      if(!st) return `—  ${x.name} | ${addr} | não testada`;
+      if(st.state==="ok") return `OK ${x.name} | ${addr} | ${st.n||0} itens via ${st.proxy||"?"}${st.note?" ("+st.note+")":""}`;
+      return `X  ${x.name} | ${addr} | ${st.detail||st.err}`;
+    });
+    navigator.clipboard?.writeText(`Sentinela — diagnóstico ${new Date().toLocaleString("pt-PT")}\nrepetidores: ${S.proxies.join(" | ")}\n\n${lines.join("\n")}`);
+    UI.toast("Relatório copiado"); return;
+  }
+  if(id === "repairAll"){
+    const alvos = S.sources.filter(x => x.enabled && x.type === "rss" &&
+      ["bad","empty"].includes(S.status[x.id]?.state));
+    if(!alvos.length){ UI.toast("Nenhuma fonte falhada para reparar"); return; }
+    (async () => {
+      let corrigidas = 0, convertidas = 0, k = 0;
+      for(const src of alvos){
+        t.textContent = `A reparar ${++k}/${alvos.length}…`;
+        const linhas = await probeSource(src);
+        const bom = linhas.find(l => l.ok);
+        if(bom && !bom.url.includes("news.google")){ src.url = bom.url; src.noFeed = false; corrigidas++; }
+        else if(bom){
+          const host = new URL(src.url).hostname.replace(/^www\./,"");
+          src.type = "gnews"; src.q = `site:${host}`; delete src.url; convertidas++;
+        } else { src.enabled = false; }
+        persist();
+      }
+      renderSet();
+      UI.toast(`${corrigidas} endereços corrigidos, ${convertidas} passaram a pesquisa`);
+    })();
+    return;
+  }
+  if(id === "dropDead"){
+    let n = 0;
+    for(const x of S.sources) if(S.status[x.id]?.state==="bad" && x.enabled){ x.enabled = false; n++; }
+    persist(); renderSet(); UI.toast(n ? `${n} fontes desligadas` : "Está tudo a responder"); return;
+  }
+  if(id === "nsAdd"){
+    const name = $("#nsName").value.trim(), val = $("#nsUrl").value.trim();
+    if(!name || !val){ $("#nsUrl").focus(); return; }
+    const type = $("#nsType").value;
+    const src = {id:"u"+Date.now().toString(36), type, group:$("#nsGroup").value, name, enabled:true};
+    type === "rss" ? src.url = val : src.q = val;
+    S.sources.push(src); persist(); renderSet(); UI.toast("Fonte acrescentada"); return;
+  }
+  if(id === "termsSave"){
+    S.watch      = $("#watchTerms").value.split("\n").map(x=>x.trim()).filter(Boolean);
+    S.extraCore  = $("#extraCore").value.split("\n").map(x=>x.trim()).filter(Boolean);
+    S.extraNoise = $("#extraNoise").value.split("\n").map(x=>x.trim()).filter(Boolean);
+    S.minScore   = Math.max(0, +$("#minScore").value || 0);
+    const fora = reavaliar();
+    persist(); persistItems(); render();
+    UI.toast(fora ? `Termos guardados · ${fora} notícias descartadas` : "Termos guardados");
+    return;
+  }
+  if(id === "pxSave"){
+    S.proxies = $("#proxies").value.split("\n").map(x=>x.trim()).filter(Boolean);
+    persist(); UI.toast("Guardado"); return;
+  }
+  if(id === "pxReset"){ S.proxies = [...DEFAULT_PROXIES]; persist(); renderSet(); return; }
+  if(id === "netSave"){
+    S.autoMin  = +$("#autoMin").value || 0;
+    S.gnewsDays = +$("#gDays").value || 14;
+    S.cacheMin = +$("#cacheMin").value || 0;
+    persist(); setupAuto(); UI.toast("Guardado"); return;
+  }
+  if(id === "instalar" && conviteInstalar){
+    conviteInstalar.prompt();
+    conviteInstalar.userChoice.finally(() => { conviteInstalar = null; renderSet(); });
+    return;
+  }
+  if(id === "thDark" || id === "thLight"){ setTheme(id === "thDark" ? "dark" : "light"); paintThemeIcon(); return; }
+
+  if(id === "expMd"){ download(`briefing-${new Date().toISOString().slice(0,10)}.md`, briefingMd(), "text/markdown"); return; }
+  if(id === "expCsv"){ download(`noticias-${new Date().toISOString().slice(0,10)}.csv`, csv(), "text/csv"); return; }
+  if(id === "expCfg"){
+    download("sentinela-config.json", JSON.stringify({
+      sources:S.sources, proxies:S.proxies, core:S.extraCore, noise:S.extraNoise,
+      watch:S.watch, minScore:S.minScore, gnewsDays:S.gnewsDays}, null, 2), "application/json");
+    return;
+  }
+  if(id === "impBtn"){
+    try{
+      const c = JSON.parse($("#impCfg").value);
+      if(Array.isArray(c.sources)) S.sources = c.sources;
+      if(Array.isArray(c.proxies)) S.proxies = c.proxies;
+      if(Array.isArray(c.core))    S.extraCore = c.core;
+      if(Array.isArray(c.noise))   S.extraNoise = c.noise;
+      if(Array.isArray(c.watch))   S.watch = c.watch;
+      if(typeof c.minScore === "number") S.minScore = c.minScore;
+      if(typeof c.gnewsDays === "number") S.gnewsDays = c.gnewsDays;
+      compileLexicon(); persist(); renderSet(); render(); UI.toast("Escolhas restauradas");
+    }catch{ UI.toast("Esse texto não parece ser das tuas escolhas"); }
+    return;
+  }
+  if(id === "reavaliar"){
+    const fora = reavaliar(); persistItems(); render(); renderSet();
+    UI.toast(fora ? `${fora} notícias descartadas pelas regras actuais` : "Nada a descartar");
+    return;
+  }
+  if(id === "arqLigar"){
+    const v = $("#arqRepo").value.trim();
+    if(v && !repoInfo(v)){ UI.toast("Escreve o repositório como nome/repositório"); return; }
+    S.repo = v;
+    const tk = $("#arqToken").value.trim();
+    if(tk) S.token = tk;
+    persist(); ARQ = null;
+    t.textContent = "A ligar…";
+    ligarArquivo().then(a => {
+      renderSet();
+      UI.toast(a ? "Arquivo ligado" : v ? "O arquivo não respondeu" : "Arquivo desligado");
+      if(a) scan();
+    });
+    return;
+  }
+  if(id === "arqEnviar"){
+    t.textContent = "A enviar…"; t.disabled = true;
+    enviarParaRepositorio().then(n => {
+      UI.toast(n ? `${n} ${n===1?"notícia enviada":"notícias enviadas"}. Entram no arquivo dentro de minutos.` : "Já estava tudo enviado");
+    }).catch(e => UI.toast(`Não foi possível enviar: ${e.message}`)).finally(renderSet);
+    return;
+  }
+  if(id === "minhasAdd"){ closeSheet(); abrirAcrescentar(); return; }
+  if(id === "minhasImp"){ $("#addFile").click(); return; }
+  if(id === "minhasExp"){
+    download(`sentinela-copia-${new Date().toISOString().slice(0,10)}.json`, JSON.stringify(exportarMinhas(), null, 1), "application/json");
+    return;
+  }
+  if(id === "expTudo"){
+    (DB.ok ? DB.all() : Promise.resolve(S.items)).then(todas => {
+      download(`sentinela-arquivo-${new Date().toISOString().slice(0,10)}.json`,
+        JSON.stringify({ formato: "sentinela-arquivo", exportado: new Date().toISOString(),
+          noticias: todas.map(({_w, fresh, mine, ...x}) => x) }), "application/json");
+      UI.toast(`${todas.length} notícias exportadas`);
+    });
+    return;
+  }
+  if(id === "clrRead"){ S.read.clear(); persist(); render(); renderSet(); UI.toast("Histórico de leitura limpo"); return; }
+  if(id === "clrItems"){
+    S.items = S.items.filter(i => i.own || S.star[i.key]); S.status = {};
+    const fim = () => { render(); renderSet(); UI.toast("Notícias apagadas — favoritos e as tuas ficaram"); };
+    if(DB.ok) DB.prune(Date.now() + 864e5).then(fim); else { persistItems(); fim(); }
+    return;
+  }
+  if(id === "clrAll"){
+    S.sources = DEFAULT_SOURCES.map(x=>({enabled:x.enabled!==false, ...x}));
+    S.proxies = [...DEFAULT_PROXIES];
+    S.extraCore = []; S.extraNoise = []; S.watch = []; resetZones();
+    S.minScore = 3; S.gnewsDays = 14; S.autoMin = 0; S.cacheMin = 8;
+    S.read.clear(); S.status = {};
+    S.items = S.items.filter(i => i.own || S.star[i.key]);           // o que guardaste nunca se repõe
+    if(DB.ok) DB.prune(Date.now() + 864e5); else persistItems();
+    compileLexicon(); persist(); renderSet(); render(); UI.toast("Reposto de origem");
+  }
+});
+
+/* ------------------------------- tema ---------------------------------- */
+function setTheme(t){
+  document.documentElement.dataset.theme = t;
+  document.querySelector('meta[name=theme-color]').content = t === "dark" ? "#0B1618" : "#F3F6F2";
+  Store.set("sen.theme", t);
+}
+function paintThemeIcon(){
+  const dark = document.documentElement.dataset.theme === "dark";
+  $("#icoMoon").style.display = dark ? "none" : "";
+  $("#icoSun").style.display  = dark ? "" : "none";
+}
+setTheme(Store.get("sen.theme", "dark"));
+paintThemeIcon();
+$("#btnTheme").addEventListener("click", () => {
+  buzz(6);
+  setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
+  paintThemeIcon();
+});
+
+/* ------------------------------ varredura ------------------------------ */
+async function scan(){
+  if(S.scanning) return;
+  S.scanning = true;
+  UI.scanStart();
+  compileLexicon();
+  podeMarcarNovas = S.items.length > 0;
+  for(const it of S.items) it.fresh = false;
+  const antes = new Set(S.items.map(i => i.key));
+
+  let pending = [], paint = 0;
+  const flush = () => {
+    if(!pending.length) return;
+    merge(pending); pending = []; paint = Date.now();
+    render();
+  };
+
+  // 1) o arquivo do repositório, se houver
+  const cobertas = new Set();
+  let arqErro = "";
+  if(archiveBases().length){
+    UI.busy("A ler o arquivo", "", 0.05);
+    try{
+      const a = await ligarArquivo();
+      if(a){
+        // da segunda vez em diante basta o que chegou nas últimas 72 horas
+        let rec = null;
+        if(S.arqSync && Date.now() - S.arqSync < 60 * 36e5 && S.items.length)
+          rec = await getJson(a.base + "ultimas.json" + bustArq(), 20000).catch(() => null);
+        if(!rec) rec = await getJson(a.base + "recentes.json" + bustArq(), 40000);
+        // o arquivo é de todos: as notícias pessoais de quem o mantém não entram aqui
+        let items = (rec.items || []).map(({ own, note, ...x }) => x);
+        if(ADMIN){
+          const minhas = await getJson(a.base + "minhas.json" + bustArq(), 20000).catch(() => ({ items: [] }));
+          items = items.concat(minhas.items || []);
+        }
+        merge(items);
+        S.arqSync = Date.now();
+        render();
+        for(const [id, f] of Object.entries(a.idx.fontes || {})){
+          cobertas.add(id);
+          S.status[id] = { state: f.estado === "ok" ? "ok" : f.estado === "vazia" ? "empty" : "bad",
+            n: f.lidas || 0, novas: f.novas || 0, at: a.at, server: true,
+            note: "no arquivo", err: f.erro || "", detail: f.erro || "" };
+        }
+        if(!S.archiveSeen){            // o servidor lê tudo: deixa de haver razão para ter fontes desligadas
+          for(const src of S.sources) if(DEFAULT_SOURCES.some(d => d.id === src.id)) src.enabled = true;
+          S.archiveSeen = true;
+        }
+      }
+    }catch(e){ arqErro = e.message; ARQ = null; }
+  }
+
+  // 2) o que falta, directamente do browser
+  const rank = s => {
+    const st = S.status[s.id];
+    if(st?.state === "ok")  return -(st.n || 1);
+    if(st?.state === "bad") return 1e6;
+    return s.type === "gnews" ? -30 : 0;
+  };
+  let active = S.sources.filter(s => s.enabled && !cobertas.has(s.id));
+  // com arquivo, as fontes de origem são tarefa do servidor; o browser só pede as tuas
+  if(ARQ){
+    const dflt = new Set(DEFAULT_SOURCES.map(d => d.id));
+    active = active.filter(s => !dflt.has(s.id));
+  }
+  // sem arquivo, o browser só aguenta o conjunto recomendado e as fontes que acrescentaste
+  if(!ARQ){
+    const rec = new Set(DEFAULT_SOURCES.filter(d => d.enabled !== false).map(d => d.id));
+    const dflt = new Set(DEFAULT_SOURCES.map(d => d.id));
+    active = active.filter(s => rec.has(s.id) || !dflt.has(s.id));
+  }
+  active.sort((a,b) => rank(a) - rank(b));
+  let collected = [];
+  if(active.length){
+    collected = await runFetch(active, { onBatch(items){
+      pending.push(...items);
+      if(Date.now() - paint > 330) flush();
+    }});
+  }
+  flush();
+  merge(collected);
+  S.lastScan = Date.now();
+  if(S.keepDays > 0 && DB.ok) await DB.prune(Date.now() - S.keepDays * 864e5);
+  persist(); await persistItems();
+  S.scanning = false;
+  UI.scanEnd();
+  $("#ptr").classList.remove("spin");
+  $("#ptr").style.height = "0px";
+  render();
+
+  const novas = S.items.filter(i => !antes.has(i.key)).length;
+  const ok = active.filter(s => S.status[s.id]?.state === "ok").length;
+  const el = $("#notice");
+  el.innerHTML = "";
+  if(ARQ){
+    const horas = (Date.now() - ARQ.at) / 36e5;
+    if(horas > 6) el.innerHTML = ADMIN
+      ? `<div class="note"><b>O arquivo não é actualizado há ${Math.round(horas)} horas.</b>
+         A recolha automática pode estar parada. No repositório, abre <b>Actions</b> e confirma que “Recolher notícias” está activa.</div>`
+      : `<div class="note"><b>As notícias mais recentes podem estar atrasadas.</b> A última recolha foi há ${Math.round(horas)} horas.</div>`;
+    UI.toast(novas ? `${novas} ${novas===1?"notícia nova":"notícias novas"} · arquivo de há ${ago(ARQ.at)}`
+                   : `Sem novidades · arquivo de há ${ago(ARQ.at)}`);
+  } else if(active.length && !ok){
+    el.innerHTML = `<div class="note"><b>Nenhuma fonte respondeu.</b>
+      ${repoInfo() ? "O arquivo também não respondeu. " : ""}Verifica a ligação à internet e tenta de novo.
+      ${ADMIN && !repoInfo() ? "Para deixares de depender dos serviços de ligação gratuitos, liga um arquivo em Definições → Dados." : ""}</div>`;
+    UI.toast("Nenhuma fonte respondeu");
+  } else {
+    if(active.length && ok < active.length * .7){
+      el.innerHTML = `<div class="note"><b>${active.length-ok} de ${active.length} fontes ficaram por recolher.</b>
+        O serviço gratuito que liga a Sentinela às publicações esteve lento.
+        ${ADMIN && !repoInfo() ? "Com um arquivo ligado (Definições → Dados), isto deixa de acontecer." : ""}</div>`;
+    }
+    UI.toast(`${novas} ${novas===1?"notícia nova":"notícias novas"} de ${ok} ${ok===1?"fonte":"fontes"}`);
+  }
+  if(arqErro && S.advanced) console.warn("arquivo:", arqErro);
+}
+
+let autoTimer = null;
+function setupAuto(){
+  clearInterval(autoTimer);
+  if(S.autoMin > 0) autoTimer = setInterval(scan, S.autoMin * 6e4);
+}
+$("#btnScan").addEventListener("click", () => { buzz(10); scan(); });
+
+/* --------------------- cabeçalho: medida e recolha --------------------- */
+(function header(){
+  const top = document.querySelector(".top");
+  const measure = () => document.documentElement.style
+    .setProperty("--head-h", top.offsetHeight + "px");
+  if(window.ResizeObserver) new ResizeObserver(measure).observe(top);
+  addEventListener("resize", measure);
+  measure();
+
+  let compact = false;
+  addEventListener("scroll", () => {
+    if(!compact && scrollY > 150){ compact = true; document.body.classList.add("compact"); }
+    else if(compact && scrollY < 40){ compact = false; document.body.classList.remove("compact"); }
+  }, {passive:true});
+})();
+
+addEventListener("keydown", e => {
+  if(e.target.matches("input,textarea,select")) return;
+  if(e.key === "/"){ e.preventDefault(); openSearch(); }
+  if(e.key === "r"){ scan(); }
+});
+
+document.addEventListener("visibilitychange", () => {
+  if(document.visibilityState !== "visible" || S.scanning) return;
+  if(Date.now() - (S.lastScan || 0) > 20 * 6e4) scan();
+});
+
+/* --------------------------- instalar no aparelho ---------------------- */
+let conviteInstalar = null;
+const instalada = () =>
+  (window.matchMedia && matchMedia("(display-mode: standalone)").matches) ||
+  navigator.standalone === true;
+
+addEventListener("beforeinstallprompt", e => {
+  e.preventDefault();
+  conviteInstalar = e;
+  if($("#shSet").classList.contains("on") && V.setTab === "dados") renderSet();
+});
+addEventListener("appinstalled", () => {
+  conviteInstalar = null;
+  UI.toast("Sentinela instalada");
+  if($("#shSet").classList.contains("on")) renderSet();
+});
+
+const contextoSeguro = location.protocol === "https:" ||
+                       ["localhost","127.0.0.1"].includes(location.hostname);
+if(contextoSeguro && "serviceWorker" in navigator){
+  addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(()=>{}));
+}
+
+function blocoInstalar(){
+  if(instalada())
+    return `<p class="hint">A Sentinela está instalada neste aparelho.</p>`;
+  if(conviteInstalar)
+    return `<button class="btn acc wide" id="instalar">Instalar no ecrã principal</button>
+      <p class="hint" style="margin-top:8px">Passa a abrir como aplicação, em ecrã inteiro e sem barra de endereço.</p>`;
+  if(contextoSeguro)
+    return `<p class="hint">Para instalar: menu do navegador → <b>Adicionar ao ecrã principal</b>.
+      No iPhone, é o botão de partilha → <b>Adicionar ao ecrã principal</b>.</p>`;
+  if(location.protocol === "http:")
+    return `<p class="hint">A Sentinela está publicada, mas num endereço sem <b>https</b>.
+      A instalação como aplicação só é possível em ligações seguras.</p>`;
+  return `<p class="hint">Estás a abrir a Sentinela como ficheiro guardado no aparelho, e assim não é possível instalá-la.
+    Publica-a num endereço da internet — basta pôr os ficheiros em qualquer alojamento gratuito — e passa a instalar-se como aplicação, com ícone próprio, ecrã inteiro e arranque sem rede.</p>`;
+}
+
+/* ------------------------------- arranque ------------------------------ */
+compileLexicon();
+reavaliar();
+S.filters.period = DAYS;   // o boletim é a janela; o intervalo escolhe-se nele
+render();
+setupAuto();
+if(!S.items.length) skeletons();
+window.__sentinela = S;
+window.__DB = DB; window.__V = V;
+window.__pronto = (async function arranque(){
+  if(await DB.open()){
+    // notícias guardadas pela versão anterior, no armazenamento simples
+    const antigas = Store.get("sen.items", null);
+    if(Array.isArray(antigas) && antigas.length){
+      await DB.put(antigas.filter(x => x && x.key)).catch(() => {});
+      Store.del("sen.items");
+    }
+    const [recentes, minhas] = await Promise.all([DB.since(Date.now() - MEM_DAYS * 864e5), DB.mine()]);
+    const tenho = new Set([...recentes, ...minhas].map(x => x.key));
+    const favs = await DB.get(Object.keys(S.star).filter(k => !tenho.has(k)));
+    const juntas = new Map(S.items.map(i => [i.key, i]));
+    for(const x of [...recentes, ...minhas, ...favs]) if(!juntas.has(x.key)) juntas.set(x.key, x);
+    S.items = [...juntas.values()].sort((a,b) => b.ts - a.ts);
+    for(const it of S.items) dirty.add(it.key);
+    reavaliar();
+    await persistItems();
+    render();
+    try{ navigator.storage?.persist?.(); }catch{}
+  }
+  await lerConfig();
+  setTimeout(scan, 250);
+})();
+</script>
+</body>
+</html>

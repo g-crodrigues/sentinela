@@ -1,0 +1,50 @@
+# Recolhe as notícias de hora a hora e guarda-as no arquivo do repositório.
+# Também se pode correr à mão: separador Actions → "Recolher notícias" → Run workflow.
+name: Recolher notícias
+
+on:
+  schedule:
+    - cron: "23 * * * *"        # a cada hora, aos 23 minutos
+  workflow_dispatch:
+  push:
+    paths:
+      - "entrada/**"            # pôr um ficheiro em entrada/ arquiva-o logo
+      - "recolha/**"
+      - "lib/**"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: recolha
+  cancel-in-progress: false
+
+jobs:
+  recolher:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Recolher
+        run: node recolha/recolher.mjs
+
+      - name: Guardar no arquivo
+        run: |
+          git config user.name  "sentinela"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A data entrada
+          if git diff --cached --quiet; then
+            echo "Sem novidades nesta recolha."
+            exit 0
+          fi
+          git commit -q -m "Recolha $(date -u +'%Y-%m-%d %H:%M') UTC"
+          for tentativa in 1 2 3; do
+            git pull -q --rebase && git push -q && exit 0
+            sleep 5
+          done
+          exit 1
