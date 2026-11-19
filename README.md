@@ -6,7 +6,7 @@ União Europeia, recolhidas de hora a hora e guardadas para sempre.
 **Um arquivo, para todos.** Quem mantém este repositório corre a recolha; os
 utilizadores só abrem o endereço da aplicação. Não precisam de conta no GitHub
 nem de configurar nada — todos lêem o mesmo arquivo, e cada um aplica por cima
-os seus filtros, países, vigias e favoritos, que ficam no seu aparelho.
+os seus filtros, países, vigias e notícias guardadas, que ficam no seu aparelho.
 
 Este repositório é ao mesmo tempo **a aplicação** e **o arquivo**:
 
@@ -79,7 +79,7 @@ actualizado de hora a hora.
 
 ## As notícias de cada um
 
-**Os utilizadores** guardam favoritos e acrescentam notícias próprias na
+**Os utilizadores** guardam notícias e acrescentam notícias próprias na
 aplicação. Ficam no aparelho, sem prazo, e só eles as vêem. *Definições → Dados →
 Cópia de segurança* leva-as para outro aparelho.
 
@@ -92,8 +92,8 @@ repositório, para as veres em todos os teus aparelhos:
 - **Na pasta `entrada/`** do repositório: deixa lá um `.csv`, `.json`, `.md` ou
   `.txt` (ver `entrada/LEIA-ME.md`). Na recolha seguinte é absorvido e marcado
   como teu. Uma ligação sem título fica com o título da própria página.
-- **Automaticamente.** Com uma *chave de acesso* em *Definições → Dados*, os
-  favoritos e as notícias que acrescentas seguem sozinhos para `entrada/`
+- **Automaticamente.** Com uma *chave de acesso* em *Definições → Dados*, as
+  notícias guardadas e as que acrescentas seguem sozinhas para `entrada/`
   segundos depois. Cria a chave em GitHub → *Settings → Developer settings →
   Personal access tokens → Fine-grained tokens*: só este repositório,
   permissão **Contents: Read and write**. A chave fica guardada apenas no

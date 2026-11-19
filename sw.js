@@ -1,7 +1,7 @@
 /* Sentinela — serviço de segundo plano.
    Guarda a aplicação para abrir sem rede. As notícias em si ficam
    no armazenamento local do browser, não aqui.                      */
-const VERSAO = "sentinela-v2";
+const VERSAO = "sentinela-v3";
 const CASCA = ["./", "./index.html", "./manifest.webmanifest",
                "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png"];
 
@@ -20,13 +20,14 @@ self.addEventListener("fetch", e => {
   if(e.request.method !== "GET" || url.origin !== location.origin) return;   // as notícias vêm de fora
 
   // A aplicação: rede primeiro, para receber actualizações; cache se falhar.
+  // Cada página fica guardada com o seu nome: index.html e tecnica.html não se trocam.
   if(e.request.mode === "navigate"){
+    const nome = /\/$/.test(url.pathname) ? "./index.html" : "." + url.pathname.slice(url.pathname.lastIndexOf("/"));
     e.respondWith(
       fetch(e.request).then(r => {
-        const copia = r.clone();
-        caches.open(VERSAO).then(c => c.put("./index.html", copia));
+        if(r.ok){ const copia = r.clone(); caches.open(VERSAO).then(c => c.put(nome, copia)); }
         return r;
-      }).catch(() => caches.match("./index.html")));
+      }).catch(() => caches.match(nome).then(r => r || caches.match("./index.html"))));
     return;
   }
   // Ícones e manifesto: cache primeiro.

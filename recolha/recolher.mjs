@@ -138,6 +138,7 @@ function lerFeed(texto, src){
       date: C.stripTags(etiqueta(b, ["pubDate", "published", "updated", "dc:date"])),
       description: etiqueta(b, ["description", "summary", "content:encoded", "content"]),
       sourceName: etiqueta(b, ["source"]),
+      sourceUrl: (/<source\b[^>]*\burl=["']([^"']+)["']/i.exec(b) || [])[1] || "",
       feedTitle, cats
     }, src);
     if(e) out.push(e);
@@ -215,6 +216,7 @@ function acrescentar(e, { own = false, nota = "" } = {}){
     }
     if(e.srcId && !ja.srcs.includes(e.srcId)){ ja.srcs.push(e.srcId); mudou = true; }
     if(!ja.dek && e.dek){ ja.dek = e.dek; mudou = true; }
+    if(!ja.pubHost && e.pubHost){ ja.pubHost = e.pubHost; mudou = true; }
     if(own && !ja.own){ ja.own = true; mudou = true; }
     if(nota && ja.note !== nota){ ja.note = nota; mudou = true; }
     return mudou ? { item: ja, novo: false, mudou } : { item: ja, novo: false, mudou: false };
@@ -223,6 +225,7 @@ function acrescentar(e, { own = false, nota = "" } = {}){
     key, title: e.title, link: e.link, ts: e.ts, dek: e.dek || "", publisher: e.publisher || "",
     cats: e.cats || "", srcId: e.srcId, srcs: [e.srcId], also: [], seen: AGORA
   };
+  if(e.pubHost) item.pubHost = e.pubHost;
   if(own) item.own = true;
   if(nota) item.note = nota;
   porChave.set(key, item);
