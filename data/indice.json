@@ -1,23 +1,23 @@
 {
  "versao": 2,
- "atualizado": "2026-11-21T18:06:10.107Z",
- "total": 1742,
+ "atualizado": "2026-11-21T23:27:31.602Z",
+ "total": 1822,
  "meses": [
   {
    "mes": "2026-11",
-   "n": 881
+   "n": 940
   },
   {
    "mes": "2026-10",
-   "n": 90
+   "n": 91
   },
   {
    "mes": "2026-09",
-   "n": 48
+   "n": 49
   },
   {
    "mes": "2026-08",
-   "n": 19
+   "n": 20
   },
   {
    "mes": "2026-07",
@@ -25,7 +25,7 @@
   },
   {
    "mes": "2026-06",
-   "n": 33
+   "n": 34
   },
   {
    "mes": "2026-05",
@@ -37,7 +37,7 @@
   },
   {
    "mes": "2026-03",
-   "n": 21
+   "n": 22
   },
   {
    "mes": "2026-02",
@@ -49,11 +49,11 @@
   },
   {
    "mes": "2025-12",
-   "n": 30
+   "n": 31
   },
   {
    "mes": "2025-11",
-   "n": 20
+   "n": 21
   },
   {
    "mes": "2025-10",
@@ -77,7 +77,7 @@
   },
   {
    "mes": "2025-05",
-   "n": 5
+   "n": 6
   },
   {
    "mes": "2025-04",
@@ -93,7 +93,7 @@
   },
   {
    "mes": "2025-01",
-   "n": 14
+   "n": 16
   },
   {
    "mes": "2024-12",
@@ -101,7 +101,7 @@
   },
   {
    "mes": "2024-11",
-   "n": 17
+   "n": 21
   },
   {
    "mes": "2024-10",
@@ -137,11 +137,11 @@
   },
   {
    "mes": "2024-02",
-   "n": 13
+   "n": 14
   },
   {
    "mes": "2024-01",
-   "n": 5
+   "n": 6
   },
   {
    "mes": "2023-12",
@@ -225,7 +225,7 @@
   },
   {
    "mes": "2022-02",
-   "n": 3
+   "n": 4
   },
   {
    "mes": "2022-01",
@@ -270,6 +270,10 @@
   {
    "mes": "2021-02",
    "n": 3
+  },
+  {
+   "mes": "2021-01",
+   "n": 1
   },
   {
    "mes": "2020-12",
@@ -333,6 +337,10 @@
   },
   {
    "mes": "2019-02",
+   "n": 1
+  },
+  {
+   "mes": "2019-01",
    "n": 1
   },
   {
@@ -417,7 +425,7 @@
   },
   {
    "mes": "2017-02",
-   "n": 4
+   "n": 5
   },
   {
    "mes": "2017-01",
@@ -472,6 +480,10 @@
    "n": 1
   },
   {
+   "mes": "2014-01",
+   "n": 1
+  },
+  {
    "mes": "2013-08",
    "n": 1
   },
@@ -509,68 +521,85 @@
   }
  ],
  "fontes": {
-  "g-flor": {
-   "nome": "Floresta e incêndios",
-   "estado": "falhou",
-   "lidas": 0,
-   "relevantes": 0,
-   "novas": 0,
-   "ms": 34839,
-   "erro": "HTTP 503"
-  },
   "g-agri": {
    "nome": "Agricultura e agricultores",
-   "estado": "falhou",
-   "lidas": 0,
-   "relevantes": 0,
-   "novas": 0,
-   "ms": 35715,
-   "erro": "HTTP 503"
-  },
-  "g-agua": {
-   "nome": "Água, regadio e seca",
-   "estado": "falhou",
-   "lidas": 0,
-   "relevantes": 0,
-   "novas": 0,
-   "ms": 35367,
-   "erro": "HTTP 503"
+   "estado": "ok",
+   "lidas": 100,
+   "relevantes": 56,
+   "novas": 9,
+   "ms": 621
   },
   "g-pol": {
    "nome": "Política agrícola e apoios",
-   "estado": "falhou",
-   "lidas": 0,
-   "relevantes": 0,
+   "estado": "ok",
+   "lidas": 27,
+   "relevantes": 19,
    "novas": 0,
-   "ms": 39698,
-   "erro": "HTTP 503"
+   "ms": 333
   },
-  "g-merc": {
-   "nome": "Mercados, culturas e pecuária",
-   "estado": "falhou",
-   "lidas": 0,
-   "relevantes": 0,
-   "novas": 0,
-   "ms": 38821,
-   "erro": "HTTP 503"
-  },
-  "g-cult": {
-   "nome": "Culturas e fileiras (detalhe)",
-   "estado": "falhou",
-   "lidas": 0,
-   "relevantes": 0,
-   "novas": 0,
-   "ms": 39691,
-   "erro": "HTTP 503"
+  "g-flor": {
+   "nome": "Floresta e incêndios",
+   "estado": "ok",
+   "lidas": 60,
+   "relevantes": 57,
+   "novas": 1,
+   "ms": 420
   },
   "g-ue": {
    "nome": "União Europeia — agricultura e floresta",
-   "estado": "falhou",
-   "lidas": 0,
-   "relevantes": 0,
+   "estado": "ok",
+   "lidas": 35,
+   "relevantes": 27,
    "novas": 0,
-   "ms": 41194,
-   "erro": "HTTP 503"
+   "ms": 337
+  },
+  "g-merc": {
+   "nome": "Mercados, culturas e pecuária",
+   "estado": "ok",
+   "lidas": 59,
+   "relevantes": 45,
+   "novas": 0,
+   "ms": 418
+  },
+  "g-agua": {
+   "nome": "Água, regadio e seca",
+   "estado": "ok",
+   "lidas": 100,
+   "relevantes": 65,
+   "novas": 5,
+   "ms": 595
+  },
+  "g-cult": {
+   "nome": "Culturas e fileiras (detalhe)",
+   "estado": "ok",
+   "lidas": 33,
+   "relevantes": 33,
+   "novas": 1,
+   "ms": 384
+  },
+  "g-rural": {
+   "nome": "Mundo rural e organizações",
+   "estado": "ok",
+   "lidas": 35,
+   "relevantes": 32,
+   "novas": 0,
+   "ms": 378
+  },
+  "g-ue3": {
+   "nome": "UE — orçamento e comércio",
+   "estado": "ok",
+   "lidas": 96,
+   "relevantes": 34,
+   "novas": 1,
+   "ms": 373
+  },
+  "g-pec": {
+   "nome": "Sanidade animal (detalhe)",
+   "estado": "ok",
+   "lidas": 100,
+   "relevantes": 87,
+   "novas": 13,
+   "ms": 573
   },
   "publico-rss": {
    "nome": "Público",
@@ -578,15 +607,7 @@
    "lidas": 10,
    "relevantes": 0,
    "novas": 0,
-   "ms": 138
-  },
-  "rtp-rss": {
-   "nome": "RTP Notícias",
-   "estado": "ok",
-   "lidas": 50,
-   "relevantes": 0,
-   "novas": 0,
-   "ms": 442
+   "ms": 249
   },
   "observador-rss": {
    "nome": "Observador",
@@ -594,16 +615,15 @@
    "lidas": 51,
    "relevantes": 0,
    "novas": 0,
-   "ms": 60
+   "ms": 36
   },
-  "g-pec": {
-   "nome": "Sanidade animal (detalhe)",
-   "estado": "falhou",
-   "lidas": 0,
+  "rtp-rss": {
+   "nome": "RTP Notícias",
+   "estado": "ok",
+   "lidas": 50,
    "relevantes": 0,
    "novas": 0,
-   "ms": 41669,
-   "erro": "HTTP 503"
+   "ms": 222
   },
   "eco": {
    "nome": "ECO",
@@ -611,51 +631,40 @@
    "lidas": 22,
    "relevantes": 0,
    "novas": 0,
-   "ms": 467
-  },
-  "expresso-rss": {
-   "nome": "Expresso",
-   "estado": "falhou",
-   "lidas": 0,
-   "relevantes": 0,
-   "novas": 0,
-   "ms": 24397,
-   "erro": "HTTP 403"
-  },
-  "g-rural": {
-   "nome": "Mundo rural e organizações",
-   "estado": "falhou",
-   "lidas": 0,
-   "relevantes": 0,
-   "novas": 0,
-   "ms": 35268,
-   "erro": "HTTP 503"
-  },
-  "g-ue3": {
-   "nome": "UE — orçamento e comércio",
-   "estado": "falhou",
-   "lidas": 0,
-   "relevantes": 0,
-   "novas": 0,
-   "ms": 35024,
-   "erro": "HTTP 503"
+   "ms": 254
   },
   "g-publico": {
    "nome": "Público — só agroflorestal",
-   "estado": "falhou",
-   "lidas": 0,
-   "relevantes": 0,
-   "novas": 0,
-   "ms": 39171,
-   "erro": "HTTP 503"
-  },
-  "agrimar": {
-   "nome": "Agricultura e Mar",
    "estado": "ok",
-   "lidas": 10,
-   "relevantes": 10,
+   "lidas": 100,
+   "relevantes": 61,
+   "novas": 2,
+   "ms": 353
+  },
+  "g-expresso": {
+   "nome": "Expresso — só agroflorestal",
+   "estado": "ok",
+   "lidas": 100,
+   "relevantes": 61,
+   "novas": 1,
+   "ms": 388
+  },
+  "g-observador": {
+   "nome": "Observador — só agroflorestal",
+   "estado": "ok",
+   "lidas": 97,
+   "relevantes": 62,
+   "novas": 2,
+   "ms": 341
+  },
+  "expresso-rss": {
+   "nome": "Expresso",
+   "estado": "ok",
+   "lidas": 100,
+   "relevantes": 1,
    "novas": 0,
-   "ms": 1853
+   "ms": 1625,
+   "nota": "sem feed; via pesquisa site:expresso.pt"
   },
   "vidarural": {
    "nome": "Vida Rural",
@@ -663,42 +672,32 @@
    "lidas": 10,
    "relevantes": 10,
    "novas": 0,
-   "ms": 294
+   "ms": 155
   },
   "agroportal": {
    "nome": "Agroportal",
-   "estado": "falhou",
-   "lidas": 0,
-   "relevantes": 0,
-   "novas": 0,
-   "ms": 23891,
-   "erro": "HTTP 403"
-  },
-  "g-expresso": {
-   "nome": "Expresso — só agroflorestal",
-   "estado": "falhou",
-   "lidas": 0,
-   "relevantes": 0,
-   "novas": 0,
-   "ms": 36497,
-   "erro": "HTTP 503"
-  },
-  "g-observador": {
-   "nome": "Observador — só agroflorestal",
-   "estado": "falhou",
-   "lidas": 0,
-   "relevantes": 0,
-   "novas": 0,
-   "ms": 36921,
-   "erro": "HTTP 503"
-  },
-  "ec-agri": {
-   "nome": "Comissão Europeia — agricultura",
    "estado": "ok",
-   "lidas": 30,
+   "lidas": 100,
+   "relevantes": 100,
+   "novas": 12,
+   "ms": 612,
+   "nota": "sem feed; via pesquisa site:agroportal.pt"
+  },
+  "ambiente": {
+   "nome": "Ambiente e território",
+   "estado": "ok",
+   "lidas": 100,
+   "relevantes": 99,
+   "novas": 31,
+   "ms": 499
+  },
+  "agrimar": {
+   "nome": "Agricultura e Mar",
+   "estado": "ok",
+   "lidas": 10,
    "relevantes": 10,
-   "novas": 1,
-   "ms": 1149
+   "novas": 2,
+   "ms": 1518
   },
   "dre1": {
    "nome": "Diário da República — 1.ª série",
@@ -706,7 +705,15 @@
    "lidas": 12,
    "relevantes": 10,
    "novas": 0,
-   "ms": 482
+   "ms": 250
+  },
+  "ec-agri": {
+   "nome": "Comissão Europeia — agricultura",
+   "estado": "ok",
+   "lidas": 30,
+   "relevantes": 10,
+   "novas": 0,
+   "ms": 803
   },
   "dre2": {
    "nome": "DR — 2.ª série, anúncios de procedimento",
@@ -714,33 +721,33 @@
    "lidas": 84,
    "relevantes": 28,
    "novas": 0,
-   "ms": 522
+   "ms": 298
+  },
+  "g-gov": {
+   "nome": "Governo e institucional",
+   "estado": "ok",
+   "lidas": 59,
+   "relevantes": 42,
+   "novas": 0,
+   "ms": 295
   },
   "vozdocampo": {
    "nome": "Voz do Campo",
+   "estado": "ok",
+   "lidas": 56,
+   "relevantes": 56,
+   "novas": 0,
+   "ms": 2856,
+   "nota": "sem feed; via pesquisa site:vozdocampo.pt"
+  },
+  "euractiv": {
+   "nome": "Euractiv — Agrifood",
    "estado": "vazia",
    "lidas": 0,
    "relevantes": 0,
    "novas": 0,
-   "ms": 29134,
+   "ms": 152,
    "erro": "sem entradas"
-  },
-  "arc2020": {
-   "nome": "ARC2020 (PAC)",
-   "estado": "ok",
-   "lidas": 10,
-   "relevantes": 8,
-   "novas": 0,
-   "ms": 2805
-  },
-  "flf": {
-   "nome": "Frutas, Legumes e Flores",
-   "estado": "falhou",
-   "lidas": 0,
-   "relevantes": 0,
-   "novas": 0,
-   "ms": 36554,
-   "erro": "fetch failed"
   },
   "efsa": {
    "nome": "EFSA",
@@ -748,38 +755,35 @@
    "lidas": 30,
    "relevantes": 0,
    "novas": 0,
-   "ms": 571
+   "ms": 208
   },
-  "ambiente": {
-   "nome": "Ambiente e território",
+  "arc2020": {
+   "nome": "ARC2020 (PAC)",
+   "estado": "ok",
+   "lidas": 10,
+   "relevantes": 8,
+   "novas": 0,
+   "ms": 2021
+  },
+  "flf": {
+   "nome": "Frutas, Legumes e Flores",
    "estado": "falhou",
    "lidas": 0,
    "relevantes": 0,
    "novas": 0,
-   "ms": 38459,
-   "erro": "HTTP 503"
-  },
-  "g-gov": {
-   "nome": "Governo e institucional",
-   "estado": "falhou",
-   "lidas": 0,
-   "relevantes": 0,
-   "novas": 0,
-   "ms": 37872,
-   "erro": "HTTP 503"
-  },
-  "euractiv": {
-   "nome": "Euractiv — Agrifood",
-   "estado": "falhou",
-   "lidas": 0,
-   "relevantes": 0,
-   "novas": 0,
-   "ms": 39395,
-   "erro": "HTTP 503"
+   "ms": 16700,
+   "erro": "fetch failed"
   }
  },
  "entrada": [],
  "execucoes": [
+  {
+   "em": "2026-11-21T23:27:31.602Z",
+   "novas": 80,
+   "fontesOk": 29,
+   "fontes": 31,
+   "entrada": 0
+  },
   {
    "em": "2026-11-21T18:06:10.107Z",
    "novas": 1,
