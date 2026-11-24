@@ -1,19 +1,19 @@
 {
  "versao": 2,
- "atualizado": "2026-11-24T11:05:26.498Z",
- "total": 2508,
+ "atualizado": "2026-11-24T21:21:46.604Z",
+ "total": 2647,
  "meses": [
   {
    "mes": "2026-11",
-   "n": 1353
+   "n": 1477
   },
   {
    "mes": "2026-10",
-   "n": 139
+   "n": 141
   },
   {
    "mes": "2026-09",
-   "n": 79
+   "n": 81
   },
   {
    "mes": "2026-08",
@@ -25,7 +25,7 @@
   },
   {
    "mes": "2026-06",
-   "n": 43
+   "n": 44
   },
   {
    "mes": "2026-05",
@@ -33,7 +33,7 @@
   },
   {
    "mes": "2026-04",
-   "n": 45
+   "n": 47
   },
   {
    "mes": "2026-03",
@@ -41,11 +41,11 @@
   },
   {
    "mes": "2026-02",
-   "n": 47
+   "n": 48
   },
   {
    "mes": "2026-01",
-   "n": 38
+   "n": 39
   },
   {
    "mes": "2025-12",
@@ -73,7 +73,7 @@
   },
   {
    "mes": "2025-06",
-   "n": 17
+   "n": 18
   },
   {
    "mes": "2025-05",
@@ -105,7 +105,7 @@
   },
   {
    "mes": "2024-10",
-   "n": 7
+   "n": 8
   },
   {
    "mes": "2024-09",
@@ -117,7 +117,7 @@
   },
   {
    "mes": "2024-07",
-   "n": 10
+   "n": 11
   },
   {
    "mes": "2024-06",
@@ -194,6 +194,10 @@
   {
    "mes": "2022-12",
    "n": 6
+  },
+  {
+   "mes": "2022-11",
+   "n": 1
   },
   {
    "mes": "2022-10",
@@ -341,7 +345,7 @@
   },
   {
    "mes": "2019-07",
-   "n": 2
+   "n": 3
   },
   {
    "mes": "2019-06",
@@ -441,7 +445,7 @@
   },
   {
    "mes": "2017-04",
-   "n": 3
+   "n": 4
   },
   {
    "mes": "2017-02",
@@ -573,89 +577,89 @@
    "nome": "Agricultura e agricultores",
    "estado": "ok",
    "lidas": 100,
-   "relevantes": 44,
-   "novas": 8,
-   "ms": 670
+   "relevantes": 66,
+   "novas": 15,
+   "ms": 837
   },
   "g-pol": {
    "nome": "Política agrícola e apoios",
    "estado": "ok",
    "lidas": 100,
    "relevantes": 93,
-   "novas": 2,
-   "ms": 503
+   "novas": 3,
+   "ms": 578
   },
   "g-flor": {
    "nome": "Floresta e incêndios",
    "estado": "ok",
-   "lidas": 55,
-   "relevantes": 51,
+   "lidas": 56,
+   "relevantes": 52,
    "novas": 0,
-   "ms": 416
+   "ms": 408
   },
   "g-agua": {
    "nome": "Água, regadio e seca",
    "estado": "ok",
    "lidas": 100,
    "relevantes": 65,
-   "novas": 6,
-   "ms": 566
+   "novas": 10,
+   "ms": 539
+  },
+  "g-ue": {
+   "nome": "União Europeia — agricultura e floresta",
+   "estado": "ok",
+   "lidas": 35,
+   "relevantes": 28,
+   "novas": 0,
+   "ms": 340
   },
   "g-merc": {
    "nome": "Mercados, culturas e pecuária",
    "estado": "ok",
    "lidas": 100,
-   "relevantes": 61,
+   "relevantes": 62,
    "novas": 2,
-   "ms": 465
-  },
-  "g-ue": {
-   "nome": "União Europeia — agricultura e floresta",
-   "estado": "ok",
-   "lidas": 99,
-   "relevantes": 66,
-   "novas": 7,
-   "ms": 400
+   "ms": 528
   },
   "g-cult": {
    "nome": "Culturas e fileiras (detalhe)",
    "estado": "ok",
-   "lidas": 33,
-   "relevantes": 32,
-   "novas": 0,
-   "ms": 349
+   "lidas": 73,
+   "relevantes": 60,
+   "novas": 3,
+   "ms": 525
   },
   "g-pec": {
    "nome": "Sanidade animal (detalhe)",
    "estado": "ok",
    "lidas": 100,
-   "relevantes": 76,
-   "novas": 10,
-   "ms": 468
+   "relevantes": 77,
+   "novas": 8,
+   "ms": 517
   },
   "g-rural": {
    "nome": "Mundo rural e organizações",
    "estado": "ok",
    "lidas": 100,
-   "relevantes": 83,
-   "novas": 6,
-   "ms": 403
-  },
-  "g-ue3": {
-   "nome": "UE — orçamento e comércio",
-   "estado": "ok",
-   "lidas": 100,
-   "relevantes": 33,
-   "novas": 0,
-   "ms": 445
+   "relevantes": 84,
+   "novas": 1,
+   "ms": 439
   },
   "publico-rss": {
    "nome": "Público",
    "estado": "ok",
    "lidas": 10,
-   "relevantes": 0,
+   "relevantes": 1,
+   "novas": 1,
+   "ms": 171
+  },
+  "g-ue3": {
+   "nome": "UE — orçamento e comércio",
+   "estado": "ok",
+   "lidas": 100,
+   "relevantes": 31,
    "novas": 0,
-   "ms": 306
+   "ms": 506
   },
   "observador-rss": {
    "nome": "Observador",
@@ -663,7 +667,7 @@
    "lidas": 51,
    "relevantes": 1,
    "novas": 1,
-   "ms": 158
+   "ms": 38
   },
   "rtp-rss": {
    "nome": "RTP Notícias",
@@ -671,48 +675,39 @@
    "lidas": 50,
    "relevantes": 0,
    "novas": 0,
-   "ms": 533
+   "ms": 217
   },
   "eco": {
    "nome": "ECO",
    "estado": "ok",
    "lidas": 22,
-   "relevantes": 1,
-   "novas": 1,
-   "ms": 609
-  },
-  "g-publico": {
-   "nome": "Público — só agroflorestal",
-   "estado": "ok",
-   "lidas": 100,
-   "relevantes": 67,
-   "novas": 9,
-   "ms": 423
+   "relevantes": 0,
+   "novas": 0,
+   "ms": 633
   },
   "g-expresso": {
    "nome": "Expresso — só agroflorestal",
    "estado": "ok",
    "lidas": 100,
    "relevantes": 61,
-   "novas": 1,
-   "ms": 365
+   "novas": 2,
+   "ms": 422
+  },
+  "g-publico": {
+   "nome": "Público — só agroflorestal",
+   "estado": "ok",
+   "lidas": 100,
+   "relevantes": 68,
+   "novas": 2,
+   "ms": 630
   },
   "g-observador": {
    "nome": "Observador — só agroflorestal",
    "estado": "ok",
    "lidas": 100,
-   "relevantes": 59,
-   "novas": 35,
-   "ms": 420
-  },
-  "agroportal": {
-   "nome": "Agroportal",
-   "estado": "ok",
-   "lidas": 100,
-   "relevantes": 100,
-   "novas": 5,
-   "ms": 536,
-   "nota": "sem feed; via pesquisa site:agroportal.pt"
+   "relevantes": 62,
+   "novas": 0,
+   "ms": 313
   },
   "expresso-rss": {
    "nome": "Expresso",
@@ -720,24 +715,33 @@
    "lidas": 100,
    "relevantes": 2,
    "novas": 0,
-   "ms": 1976,
+   "ms": 1889,
    "nota": "sem feed; via pesquisa site:expresso.pt"
+  },
+  "agroportal": {
+   "nome": "Agroportal",
+   "estado": "ok",
+   "lidas": 100,
+   "relevantes": 100,
+   "novas": 23,
+   "ms": 683,
+   "nota": "sem feed; via pesquisa site:agroportal.pt"
   },
   "vidarural": {
    "nome": "Vida Rural",
    "estado": "ok",
    "lidas": 10,
    "relevantes": 10,
-   "novas": 0,
-   "ms": 149
+   "novas": 2,
+   "ms": 270
   },
   "ambiente": {
    "nome": "Ambiente e território",
    "estado": "ok",
    "lidas": 100,
-   "relevantes": 99,
-   "novas": 18,
-   "ms": 522
+   "relevantes": 97,
+   "novas": 49,
+   "ms": 525
   },
   "agrimar": {
    "nome": "Agricultura e Mar",
@@ -745,15 +749,15 @@
    "lidas": 10,
    "relevantes": 10,
    "novas": 0,
-   "ms": 1730
+   "ms": 1875
   },
   "dre1": {
    "nome": "Diário da República — 1.ª série",
    "estado": "ok",
    "lidas": 3,
    "relevantes": 1,
-   "novas": 1,
-   "ms": 417
+   "novas": 0,
+   "ms": 380
   },
   "ec-agri": {
    "nome": "Comissão Europeia — agricultura",
@@ -761,32 +765,32 @@
    "lidas": 30,
    "relevantes": 10,
    "novas": 0,
-   "ms": 1052
+   "ms": 1103
   },
   "dre2": {
    "nome": "DR — 2.ª série, anúncios de procedimento",
    "estado": "ok",
-   "lidas": 22,
-   "relevantes": 5,
-   "novas": 5,
-   "ms": 87
-  },
-  "g-gov": {
-   "nome": "Governo e institucional",
-   "estado": "ok",
-   "lidas": 100,
-   "relevantes": 73,
-   "novas": 1,
-   "ms": 474
+   "lidas": 78,
+   "relevantes": 19,
+   "novas": 14,
+   "ms": 301
   },
   "vozdocampo": {
    "nome": "Voz do Campo",
    "estado": "ok",
-   "lidas": 54,
-   "relevantes": 54,
-   "novas": 1,
-   "ms": 3117,
+   "lidas": 52,
+   "relevantes": 52,
+   "novas": 3,
+   "ms": 3008,
    "nota": "sem feed; via pesquisa site:vozdocampo.pt"
+  },
+  "g-gov": {
+   "nome": "Governo e institucional",
+   "estado": "ok",
+   "lidas": 64,
+   "relevantes": 45,
+   "novas": 0,
+   "ms": 291
   },
   "euractiv": {
    "nome": "Euractiv — Agrifood",
@@ -794,7 +798,7 @@
    "lidas": 0,
    "relevantes": 0,
    "novas": 0,
-   "ms": 199,
+   "ms": 215,
    "erro": "sem entradas"
   },
   "efsa": {
@@ -803,7 +807,7 @@
    "lidas": 30,
    "relevantes": 0,
    "novas": 0,
-   "ms": 352
+   "ms": 427
   },
   "arc2020": {
    "nome": "ARC2020 (PAC)",
@@ -811,7 +815,7 @@
    "lidas": 10,
    "relevantes": 8,
    "novas": 0,
-   "ms": 1871
+   "ms": 1999
   },
   "flf": {
    "nome": "Frutas, Legumes e Flores",
@@ -819,12 +823,19 @@
    "lidas": 0,
    "relevantes": 0,
    "novas": 0,
-   "ms": 16923,
+   "ms": 17116,
    "erro": "fetch failed"
   }
  },
  "entrada": [],
  "execucoes": [
+  {
+   "em": "2026-11-24T21:21:46.604Z",
+   "novas": 139,
+   "fontesOk": 29,
+   "fontes": 31,
+   "entrada": 0
+  },
   {
    "em": "2026-11-24T11:05:26.498Z",
    "novas": 119,
